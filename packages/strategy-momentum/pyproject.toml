@@ -1,0 +1,21 @@
+[project]
+name = "power-trader-strategy-momentum"
+version = "0.1.0"
+description = "Momentum-based trading strategy plugin"
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "MIT" }
+
+dependencies = [
+    "power-framework",
+]
+
+[project.entry-points."power_trader.strategies"]
+momentum = "power_trader_strategy_momentum.strategy:MomentumStrategy"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/power_trader_strategy_momentum"]
