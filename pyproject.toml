@@ -11,12 +11,15 @@ members = [
     "packages/framework",
     "packages/power-day-trader",
     "packages/strategy-momentum",
-    "packages/strategy-volume-profile",
-    "packages/cli-tools"
 ]
 
-[tool.uv]
-dev-dependencies = [
+[tool.uv.sources]
+power-framework = { workspace = true }
+power-day-trader = { workspace = true }
+power-trader-strategy-momentum = { workspace = true }
+
+[dependency-groups]
+dev = [
     "mypy>=1.8.0",
     "ruff>=0.3.0",
     "pytest>=8.0.0",

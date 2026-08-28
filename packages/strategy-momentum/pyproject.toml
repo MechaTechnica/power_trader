@@ -10,6 +10,9 @@ dependencies = [
     "power-framework",
 ]
 
+[tool.uv.sources]
+power-framework = { workspace = true }
+
 [project.entry-points."power_trader.strategies"]
 momentum = "power_trader_strategy_momentum.strategy:MomentumStrategy"
 
