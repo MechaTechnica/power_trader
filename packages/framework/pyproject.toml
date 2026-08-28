@@ -1,7 +1,7 @@
 [project]
-name = "power-trader-framework"
+name = "power-framework"
 version = "0.1.0"
-description = "Core protocols and abstractions for Power Trader system"
+description = "Pure protocols and types for trading applications - NO IMPLEMENTATIONS"
 requires-python = ">=3.11"
 readme = "README.md"
 license = { text = "MIT" }
@@ -9,9 +9,8 @@ authors = [
     { name = "Power Trader Team" }
 ]
 
-dependencies = [
-    "that-depends>=1.0.0",
-]
+# Framework has NO dependencies - only protocols and types
+dependencies = []
 
 [project.optional-dependencies]
 dev = [

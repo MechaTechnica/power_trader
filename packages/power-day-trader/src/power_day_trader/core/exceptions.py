@@ -1,37 +1,37 @@
-"""Framework exceptions."""
+"""Application exceptions."""
 
 
-class FrameworkError(Exception):
-    """Base exception for all framework errors."""
+class ApplicationError(Exception):
+    """Base exception for application errors."""
 
     pass
 
 
-class ConfigurationError(FrameworkError):
+class ConfigurationError(ApplicationError):
     """Raised when configuration is invalid or missing."""
 
     pass
 
 
-class ConnectionError(FrameworkError):
+class ConnectionError(ApplicationError):
     """Raised when connection to external service fails."""
 
     pass
 
 
-class PluginError(FrameworkError):
+class PluginError(ApplicationError):
     """Raised when plugin loading or execution fails."""
 
     pass
 
 
-class StrategyError(FrameworkError):
+class StrategyError(ApplicationError):
     """Raised when strategy execution fails."""
 
     pass
 
 
-class DIError(FrameworkError):
+class DIError(ApplicationError):
     """Raised when dependency injection fails."""
 
     pass

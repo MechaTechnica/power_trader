@@ -1,99 +1,140 @@
-# Power Trader Framework
+# Power Framework
 
-Core protocols and abstractions for building trading applications.
+**Pure protocols and types for building trading applications.**
+
+## ⚠️ Important: NO IMPLEMENTATIONS
+
+This package contains ONLY:
+- ✅ Protocol definitions (interfaces)
+- ✅ Type definitions (dataclasses)
+- ❌ NO concrete implementations
+- ❌ NO dependencies
+
+Applications implement these protocols to create functioning systems.
 
 ## Overview
 
-The Power Trader Framework provides architecture-agnostic protocols and types that enable you to build trading applications with clean separation of concerns. The framework enforces no specific architectural style - use hexagonal, layered, event-driven, or any other architecture you prefer.
+The Power Framework provides architecture-agnostic protocols and types. It defines **what** components should do, not **how** they do it. All implementations live in application packages like `power-day-trader`.
 
 ## Features
 
 - **Type-Safe**: Strict type checking with mypy
-- **Protocol-Based**: Depend on interfaces, not implementations
-- **Dependency Injection**: Automatic constructor injection with that-depends
-- **Plugin System**: Dynamic strategy loading via entry points
-- **Performance-Optimized**: Dataclasses with slots for hot paths
+- **Protocol-Based**: Pure interfaces with no implementation
+- **Zero Dependencies**: Only standard library
 - **Architecture-Agnostic**: Works with any architectural style
+- **Performance-Optimized**: Dataclasses with slots for hot paths
 
 ## Installation
 
 ```bash
-uv add power-trader-framework
+uv add power-framework
 ```
 
-## Core Concepts
+## What's Included
 
 ### Types
 
 Immutable, type-safe data structures:
 
-- `TickerSymbol` - Stock symbol representation
-- `MarketBar` - OHLCV bar data
-- `TimeInterval` - Time interval configuration
-- `TradingSignal` - Strategy signal output
-- `SignalMetadata` - Additional signal information
+- **[`TickerSymbol`](src/power_trader_framework/types/market.py)** - Stock symbol representation
+- **[`MarketBar`](src/power_trader_framework/types/market.py)** - OHLCV bar data (frozen dataclass with slots)
+- **[`TimeInterval`](src/power_trader_framework/types/market.py)** - Time interval configuration
+- **[`TradingSignal`](src/power_trader_framework/types/signals.py)** - Strategy signal output
+- **[`SignalMetadata`](src/power_trader_framework/types/signals.py)** - Additional signal information
+- **[`SignalType`](src/power_trader_framework/types/common.py)** - Signal enum (BUY/SELL/HOLD)
 
 ### Protocols
 
-Interface definitions for pluggable components:
+Interface definitions that applications implement:
 
-- `IMarketDataProvider` - Market data source (IB, Alpaca, etc.)
-- `IStrategy` - ML trading strategy
-- `ISignalAggregator` - Multi-strategy signal combination
-- `IOutputPresenter` - Result presentation (terminal, web, API)
-- `IConfigProvider` - Configuration management
-- `IApplicationLifecycle` - Startup/shutdown hooks
+#### Data Protocols
+- **[`IMarketDataProvider`](src/power_trader_framework/protocols/data.py)** - Market data source (IB, Alpaca, etc.)
+- **[`IMarketScanner`](src/power_trader_framework/protocols/data.py)** - Stock scanner/screener
 
-### Core Components
+#### Strategy Protocols
+- **[`IStrategy`](src/power_trader_framework/protocols/strategy.py)** - ML trading strategy plugin
+- **[`ISignalAggregator`](src/power_trader_framework/protocols/strategy.py)** - Multi-strategy signal combination
 
-- `DIContainer` - Dependency injection container
-- `PluginRegistry` - Strategy plugin discovery and loading
-- `Application` - Application lifecycle management
+#### Output Protocols
+- **[`IOutputPresenter`](src/power_trader_framework/protocols/output.py)** - Result presentation (terminal, web, API)
 
-## Usage
+#### System Protocols
+- **[`IConfigProvider`](src/power_trader_framework/protocols/config.py)** - Configuration management
+- **[`IApplicationLifecycle`](src/power_trader_framework/protocols/lifecycle.py)** - Startup/shutdown hooks
+- **[`IHealthCheck`](src/power_trader_framework/protocols/lifecycle.py)** - Health monitoring
 
-### Creating a Trading Application
+## Usage Example
+
+### Using Types
 
 ```python
 from power_trader_framework import MarketBar, TickerSymbol, TimeInterval
-from power_trader_framework.protocols import IMarketDataProvider, IStrategy
-from power_trader_framework.core import Application, DIContainer
+from decimal import Decimal
+from datetime import datetime
 
-# Implement protocols
-class MyDataProvider:
-    async def connect(self) -> None:
-        # Connect to broker
-        pass
-    
-    async def stream_bars(self, symbols, interval):
-        # Stream market data
-        pass
+# Create immutable types
+symbol = TickerSymbol(symbol="AAPL", exchange="NASDAQ")
+interval = TimeInterval.from_minutes(1)
 
-# Set up DI container
-class MyContainer(DIContainer):
-    data_provider = providers.Singleton(MyDataProvider)
-    # ... register other dependencies
-
-# Bootstrap application
-container = MyContainer()
-app = Application(container)
-
-# Register lifecycle hooks
-app.on_startup(container.data_provider().connect)
-app.on_shutdown(container.data_provider().disconnect)
-
-# Run
-await app.run()
+bar = MarketBar(
+    symbol=symbol,
+    timestamp=datetime.now(),
+    open=Decimal("150.00"),
+    high=Decimal("151.00"),
+    low=Decimal("149.50"),
+    close=Decimal("150.50"),
+    volume=1000000
+)
 ```
 
-### Creating a Strategy Plugin
+### Implementing Protocols
 
 ```python
-from power_trader_framework import TradingSignal, SignalType
-from power_trader_framework.types.market import MarketBar
+from power_trader_framework.protocols import IMarketDataProvider
+from power_trader_framework.types import MarketBar, TickerSymbol, TimeInterval
+from collections.abc import AsyncIterator
+
+class MyDataProvider:
+    """Concrete implementation of IMarketDataProvider protocol."""
+    
+    async def connect(self) -> None:
+        # Your implementation here
+        pass
+    
+    async def disconnect(self) -> None:
+        # Your implementation here
+        pass
+    
+    async def stream_bars(
+        self,
+        symbols: list[TickerSymbol],
+        interval: TimeInterval,
+    ) -> AsyncIterator[MarketBar]:
+        # Your implementation here
+        while True:
+            # yield bars...
+            pass
+    
+    async def get_historical_bars(
+        self,
+        symbol: TickerSymbol,
+        interval: TimeInterval,
+        start: datetime,
+        end: datetime,
+    ) -> list[MarketBar]:
+        # Your implementation here
+        return []
+```
+
+### Implementing Strategy Plugins
+
+```python
+from power_trader_framework.protocols import IStrategy
+from power_trader_framework.types import TradingSignal, SignalType, MarketBar
+from datetime import datetime
 
 class MomentumStrategy:
-    """Strategy plugin implementing IStrategy protocol."""
+    """Concrete strategy implementation."""
     
     @property
     def strategy_name(self) -> str:
@@ -110,11 +151,11 @@ class MomentumStrategy:
             confidence=0.85,
             timestamp=datetime.now(),
             strategy_name=self.strategy_name,
-            metadata={"rsi": 65}
+            metadata={"rsi": 65.0}
         )
     
     async def initialize(self) -> None:
-        # Load models, warm cache, etc.
+        # Load models, etc.
         pass
     
     async def cleanup(self) -> None:
@@ -122,49 +163,32 @@ class MomentumStrategy:
         pass
 ```
 
-Register in `pyproject.toml`:
+## Design Philosophy
 
-```toml
-[project.entry-points."power_trader.strategies"]
-momentum = "my_strategy_package:MomentumStrategy"
-```
+### Framework Responsibilities
+✅ Define interfaces (protocols)  
+✅ Define data structures (types)  
+✅ Type safety and validation  
+
+### Application Responsibilities
+✅ Implement protocols  
+✅ Business logic  
+✅ Dependency injection setup  
+✅ Application architecture (hexagonal, layered, etc.)  
 
 ## Architecture Support
 
-The framework works with any architectural style:
+The framework works with ANY architectural style:
+- **Hexagonal Architecture** - Protocols as ports
+- **Layered Architecture** - Protocols between layers
+- **Event-Driven** - Protocols for event handlers
+- **Clean Architecture** - Protocols for boundaries
+- **Microservices** - Protocols for service contracts
 
-- **Hexagonal Architecture** - Use protocols as ports
-- **Layered Architecture** - Use protocols between layers
-- **Event-Driven Architecture** - Use protocols for event handlers
-- **Clean Architecture** - Use protocols for boundaries
-- **Microservices** - Use protocols for service interfaces
+## Example Applications
 
-## Testing
-
-All components are designed for easy testing:
-
-```python
-# Mock any protocol for testing
-class MockDataProvider:
-    async def stream_bars(self, symbols, interval):
-        # Return test data
-        yield test_bar
-
-# Test business logic in isolation
-strategy = MyStrategy()
-signal = await strategy.analyze(test_bars)
-assert signal.signal_type == SignalType.BUY
-```
-
-## Performance
-
-The framework is optimized for performance:
-
-- **Dataclasses with slots** for memory efficiency
-- **Frozen dataclasses** for immutability and hashability
-- **Decimal types** for price precision
-- **Async/await** throughout for I/O efficiency
-- **Minimal abstractions** in hot paths
+See complete implementations:
+- **[power-day-trader](../power-day-trader)** - Day trading app with Interactive Brokers (Hexagonal Architecture)
 
 ## Type Checking
 
@@ -174,11 +198,14 @@ The framework is fully type-checked with mypy strict mode:
 mypy --strict your_app.py
 ```
 
-All public APIs have complete type annotations.
+All protocols and types have complete type annotations.
 
-## Examples
+## Performance
 
-See the [`trading-app`](../trading-app) package for a complete example using Interactive Brokers.
+Types are optimized for performance:
+- **Frozen dataclasses** - Immutable and hashable
+- **Slots** - Memory efficient
+- **Decimal** - Price precision without floating point errors
 
 ## License
 

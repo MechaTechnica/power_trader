@@ -9,7 +9,7 @@ license = { text = "MIT" }
 [tool.uv.workspace]
 members = [
     "packages/framework",
-    "packages/trading-app",
+    "packages/power-day-trader",
     "packages/strategy-momentum",
     "packages/strategy-volume-profile",
     "packages/cli-tools"
