@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# UV
+.uv/
+uv.lock
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Interactive Brokers
+TWS API/
+tws_api_settings.dat
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Documentation builds
+docs/_build/
+site/

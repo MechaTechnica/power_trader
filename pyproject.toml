@@ -1,0 +1,26 @@
+[project]
+name = "power-trader-workspace"
+version = "0.1.0"
+description = "Day trading system with ML strategies and Interactive Brokers integration"
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "MIT" }
+
+[tool.uv.workspace]
+members = [
+    "packages/framework",
+    "packages/trading-app",
+    "packages/strategy-momentum",
+    "packages/strategy-volume-profile",
+    "packages/cli-tools"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "mypy>=1.8.0",
+    "ruff>=0.3.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.12.0",
+]
