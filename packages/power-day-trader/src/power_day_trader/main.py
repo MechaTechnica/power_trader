@@ -1,6 +1,7 @@
-"""Main entry point with dependency injection setup."""
+"""Main entry point for Power Day Trader."""
 
-from power_core import Application, DIContainer, PluginRegistry
+from power_core import (Application, DIContainer, PluginRegistry,
+                        create_application)
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_day_trader.adapters.secondary.ib_provider import \
     InteractiveBrokersAdapter
@@ -57,17 +58,18 @@ class TradingAppContainer(DIContainer):
     cli_adapter = providers.Singleton(CLIAdapter, monitor_use_case=monitor_use_case)
 
 
-def create_app() -> Application:
+async def on_app_created(app: Application) -> None:
     """
-    Create and configure application.
+    Configure application after creation.
     
-    Returns:
-        Configured Application instance from power-core
+    This is called by power-core's create_application() to set up
+    application-specific lifecycle hooks.
+    
+    Args:
+        app: Application instance to configure
     """
-    container = TradingAppContainer()
-    app = Application(container)
+    container = app.container
 
-    # Register lifecycle hooks
     async def on_startup() -> None:
         """Startup tasks."""
         plugin_registry = container.plugin_registry()
@@ -93,8 +95,6 @@ def create_app() -> Application:
 
     app.on_startup(on_startup)
     app.on_shutdown(on_shutdown)
-
-    return app
 
 
 def cli() -> None:
