@@ -5,7 +5,7 @@ import signal
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from power_day_trader.core.di_container import DIContainer
+from power_core.di_container import DIContainer
 
 
 class Application:

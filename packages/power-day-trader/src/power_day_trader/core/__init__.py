@@ -1,6 +1,9 @@
-"""Core domain logic (inside the hexagon)."""
+"""Core domain logic (inside the hexagon).
 
-from power_day_trader.core.application import Application
-from power_day_trader.core.di_container import DIContainer, PluginRegistry
+Note: Infrastructure components (Application, DIContainer) have moved to power-core.
+This module now only contains business logic specific to this application.
+"""
 
-__all__ = ["Application", "DIContainer", "PluginRegistry"]
+from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
+
+__all__ = ["MonitorStocksUseCase"]

@@ -4,9 +4,8 @@ import importlib.metadata
 from collections.abc import Callable
 from typing import Any, TypeVar
 
+from power_core.exceptions import DIError, PluginError
 from that_depends import BaseContainer, providers
-
-from power_day_trader.core.exceptions import DIError, PluginError
 
 T = TypeVar("T")
 

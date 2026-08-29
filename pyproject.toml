@@ -9,14 +9,18 @@ license = { text = "MIT" }
 [tool.uv.workspace]
 members = [
     "packages/framework",
+    "packages/power-core",
     "packages/power-day-trader",
     "packages/strategy-momentum",
+    "packages/strategy-gex",
 ]
 
 [tool.uv.sources]
 power-framework = { workspace = true }
+power-core = { workspace = true }
 power-day-trader = { workspace = true }
 power-trader-strategy-momentum = { workspace = true }
+power-trader-strategy-gex = { workspace = true }
 
 [dependency-groups]
 dev = [
