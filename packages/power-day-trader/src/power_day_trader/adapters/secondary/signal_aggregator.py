@@ -3,8 +3,7 @@
 from datetime import datetime
 
 from power_trader_framework.protocols.strategy import ISignalAggregator
-from power_trader_framework.types.common import SignalType
-from power_trader_framework.types.signals import TradingSignal
+from power_trader_framework.types.signals import SignalType, TradingSignal
 
 
 class WeightedAverageAggregator:

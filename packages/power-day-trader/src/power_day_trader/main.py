@@ -99,8 +99,8 @@ async def on_app_created(app: Application) -> None:
 
 def cli() -> None:
     """CLI entry point."""
-    container = TradingAppContainer()
-    cli_adapter = container.cli_adapter()
+    # Use the container class directly (that-depends pattern)
+    cli_adapter = TradingAppContainer.cli_adapter()
     click_cli = cli_adapter.create_cli()
     click_cli()
 
