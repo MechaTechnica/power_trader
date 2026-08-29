@@ -1,14 +1,5 @@
-"""Common types and enums used throughout the framework."""
+"""Common types and enums used throughout the framework.
 
-from enum import Enum
-
-
-class SignalType(str, Enum):
-    """Trading signal types."""
-
-    BUY = "buy"
-    SELL = "sell"
-    HOLD = "hold"
-
-    def __str__(self) -> str:
-        return self.value
+Note: This module is kept for future common types.
+SignalType has been moved to signals.py where it semantically belongs.
+"""

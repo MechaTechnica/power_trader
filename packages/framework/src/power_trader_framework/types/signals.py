@@ -2,9 +2,19 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
-from power_trader_framework.types.common import SignalType
+
+class SignalType(str, Enum):
+    """Trading signal types."""
+
+    BUY = "buy"
+    SELL = "sell"
+    HOLD = "hold"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 @dataclass(frozen=True, slots=True)
