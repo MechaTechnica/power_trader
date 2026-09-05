@@ -27,13 +27,7 @@ class CLIAdapter:
             pass
 
         @cli.command()
-        @click.option(
-            "--symbols",
-            "-s",
-            multiple=True,
-            required=True,
-            help="Stock symbols to monitor (e.g., AAPL MSFT)",
-        )
+        @click.argument("symbols", nargs=-1, required=True)
         @click.option(
             "--interval",
             "-i",
@@ -43,10 +37,13 @@ class CLIAdapter:
         )
         def monitor(symbols: tuple[str], interval: int) -> None:
             """Monitor stocks for trading signals."""
+            # Symbol names can also be provided via --symbols, e.g.:
+            #   power-day-trader monitor AAPL MSFT
+            #   power-day-trader monitor --symbols AAPL --symbols MSFT
             # Convert CLI types to domain types
             ticker_symbols = [TickerSymbol(symbol=s.upper()) for s in symbols]
             time_interval = TimeInterval.from_seconds(interval)
-            
+
             # Execute use case
             asyncio.run(self._monitor_use_case.execute(ticker_symbols, time_interval))
 

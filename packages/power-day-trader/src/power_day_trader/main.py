@@ -1,7 +1,7 @@
 """Main entry point for Power Day Trader."""
 
-from power_core import (Application, DIContainer, PluginRegistry,
-                        create_application)
+from functools import lru_cache
+
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_day_trader.adapters.secondary.ib_provider import \
     InteractiveBrokersAdapter
@@ -9,98 +9,119 @@ from power_day_trader.adapters.secondary.signal_aggregator import \
     WeightedAverageAggregator
 from power_day_trader.adapters.secondary.terminal_output import \
     TerminalOutputAdapter
-from power_day_trader.config.settings import Settings
+from power_day_trader.config.settings import ApplicationSettings
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
-from that_depends import providers
+from power_trader_framework.application import ApplicationBase
+from power_trader_framework.protocols.container import IContainer
+from power_trader_framework.protocols.data import IMarketDataProvider
+from power_trader_framework.protocols.output import IOutputPresenter
+from power_trader_framework.protocols.plugin import IPluginRegistry
+from power_trader_framework.protocols.strategy import (ISignalAggregator,
+                                                       IStrategy)
+from power_trader_framework.settings import FrameworkSettings
 
 
-class TradingAppContainer(DIContainer):
+class PowerDayTraderApplication(ApplicationBase):
     """
-    Application DI container.
-    
-    Wires together all dependencies using power-core's DIContainer.
+    Power Day Trader application.
+
+    ``ApplicationBase`` (from ``power_trader_framework``) owns creation of the
+    container, loading of ``FrameworkSettings``, and construction of the plugin
+    registry - these come from the concrete runtime (``power-core``) via a
+    framework entry point, so this module never imports ``power_core``. This
+    class only implements the lifecycle hooks the framework invokes.
     """
 
-    # Configuration
-    settings = providers.Singleton(Settings.load)
+    def __init__(self) -> None:
+        super().__init__()
+        self._plugin_registry: IPluginRegistry | None = None
 
-    # Plugin registry
-    plugin_registry = providers.Singleton(PluginRegistry)
+    def on_register(
+        self,
+        container: IContainer,
+        framework_settings: FrameworkSettings,
+        plugin_registry: IPluginRegistry,
+    ) -> None:
+        """Register Power Day Trader's dependencies against the container.
 
-    # Secondary adapters (driven - implementations)
-    ib_provider = providers.Singleton(
-        InteractiveBrokersAdapter,
-        host=settings.provided.ib.host,
-        port=settings.provided.ib.port,
-        client_id=settings.provided.ib.client_id,
-    )
+        Registers *interface types* against concrete *implementations*.
+        Resolving a type (e.g. ``container.resolve(CLIAdapter)``) builds the
+        dependency graph from constructor type hints.
+        """
+        self._plugin_registry = plugin_registry
 
-    terminal_output = providers.Singleton(TerminalOutputAdapter)
-    signal_aggregator = providers.Singleton(WeightedAverageAggregator)
+        # Application-level configuration (distinct from framework_settings,
+        # which the runtime already registered on our behalf).
+        app_settings = ApplicationSettings.load()
+        container.register_instance(ApplicationSettings, app_settings)
 
-    # Strategies (discovered from plugins)
-    @providers.Singleton
-    @staticmethod
-    def strategies(plugin_registry: PluginRegistry) -> list:  # type: ignore
-        """Get all registered strategy instances."""
-        return plugin_registry.get_all_strategies()
+        # Secondary adapters (driven - implementations)
+        container.register(
+            IMarketDataProvider,
+            InteractiveBrokersAdapter,
+            host=app_settings.ib.host,
+            port=app_settings.ib.port,
+            client_id=app_settings.ib.client_id,
+        )
+        container.register(IOutputPresenter, TerminalOutputAdapter)
+        container.register(ISignalAggregator, WeightedAverageAggregator)
 
-    # Core use cases
-    monitor_use_case = providers.Singleton(
-        MonitorStocksUseCase,
-        data_provider=ib_provider,
-        strategies=strategies,
-        aggregator=signal_aggregator,
-        output=terminal_output,
-    )
+        # Strategies (discovered from plugins via the registry the runtime
+        # already created and registered for us).
+        container.register(
+            list[IStrategy],
+            lambda registry: registry.get_all_strategies(),
+            registry=plugin_registry,
+        )
 
-    # Primary adapters (driving)
-    cli_adapter = providers.Singleton(CLIAdapter, monitor_use_case=monitor_use_case)
+        # Core use cases (concrete types registered by type)
+        container.register(MonitorStocksUseCase, MonitorStocksUseCase)
 
+        # Primary adapters (driving)
+        container.register(CLIAdapter, CLIAdapter)
 
-async def on_app_created(app: Application) -> None:
-    """
-    Configure application after creation.
-    
-    This is called by power-core's create_application() to set up
-    application-specific lifecycle hooks.
-    
-    Args:
-        app: Application instance to configure
-    """
-    container = app.container
-
-    async def on_startup() -> None:
+    async def on_startup(self) -> None:
         """Startup tasks."""
-        plugin_registry = container.plugin_registry()
+        container = self.container
+
+        plugin_registry = self._plugin_registry
+        assert plugin_registry is not None
         plugin_registry.discover_strategies()
         await plugin_registry.initialize_all()
 
-        ib_provider = container.ib_provider()
+        ib_provider: IMarketDataProvider = container.resolve(IMarketDataProvider)
         await ib_provider.connect()
 
-        output = container.terminal_output()
+        output: IOutputPresenter = container.resolve(IOutputPresenter)
         await output.present_status("Power Day Trader started successfully")
 
-    async def on_shutdown() -> None:
+    async def on_shutdown(self) -> None:
         """Shutdown tasks."""
-        plugin_registry = container.plugin_registry()
+        container = self.container
+
+        plugin_registry = self._plugin_registry
+        assert plugin_registry is not None
         await plugin_registry.cleanup_all()
 
-        ib_provider = container.ib_provider()
+        ib_provider: IMarketDataProvider = container.resolve(IMarketDataProvider)
         await ib_provider.disconnect()
 
-        output = container.terminal_output()
+        output: IOutputPresenter = container.resolve(IOutputPresenter)
         await output.present_status("Power Day Trader shut down")
 
-    app.on_startup(on_startup)
-    app.on_shutdown(on_shutdown)
+
+@lru_cache(maxsize=1)
+def get_application() -> PowerDayTraderApplication:
+    """Return the shared, framework-built application (built lazily, cached)."""
+    app = PowerDayTraderApplication()
+    app.build()
+    return app
 
 
 def cli() -> None:
     """CLI entry point."""
-    # Use the container class directly (that-depends pattern)
-    cli_adapter = TradingAppContainer.cli_adapter()
+    app = get_application()
+    cli_adapter: CLIAdapter = app.container.resolve(CLIAdapter)
     click_cli = cli_adapter.create_cli()
     click_cli()
 

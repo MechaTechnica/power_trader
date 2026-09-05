@@ -5,7 +5,7 @@ import signal
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from power_core.di_container import DIContainer
+from power_core.container import Container
 
 
 class Application:
@@ -19,7 +19,7 @@ class Application:
     - Error handling
     """
 
-    def __init__(self, container: DIContainer) -> None:
+    def __init__(self, container: Container) -> None:
         """Initialize application with DI container."""
         self.container = container
         self._startup_hooks: list[Callable[[], Awaitable[None]]] = []

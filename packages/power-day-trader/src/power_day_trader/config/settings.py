@@ -1,4 +1,11 @@
-"""Application settings using Pydantic."""
+"""Application-specific settings using Pydantic.
+
+Power Day Trader owns these settings; they are distinct from
+``power_trader_framework.settings.FrameworkSettings``, which holds generic
+runtime concerns shared by every Power Trader application. This module holds
+settings that only make sense for *this* application (broker connection
+details, trading parameters, etc.).
+"""
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -27,8 +34,12 @@ class TradingSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="TRADING_")
 
 
-class Settings(BaseSettings):
-    """Application settings."""
+class ApplicationSettings(BaseSettings):
+    """Power Day Trader application settings.
+
+    Controlled via environment variables prefixed with
+    ``POWER_DAY_TRADER_``, e.g. ``POWER_DAY_TRADER_IB__HOST=127.0.0.1``.
+    """
 
     ib: InteractiveBrokersSettings = Field(default_factory=InteractiveBrokersSettings)
     trading: TradingSettings = Field(default_factory=TradingSettings)
@@ -40,6 +51,6 @@ class Settings(BaseSettings):
     )
 
     @classmethod
-    def load(cls) -> "Settings":
-        """Load settings from environment."""
+    def load(cls) -> "ApplicationSettings":
+        """Load application settings from environment."""
         return cls()

@@ -9,8 +9,12 @@ authors = [
     { name = "Power Trader Team" }
 ]
 
-# Framework has NO dependencies - only protocols and types
-dependencies = []
+# Framework exposes only interfaces, types, and config models - no runtime
+# implementations. pydantic is needed for FrameworkSettings (a config model).
+dependencies = [
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
 
 [project.optional-dependencies]
 dev = [
