@@ -12,7 +12,7 @@ from power_trader_framework.application import (ApplicationBase, IApplication,
                                                 create_application)
 from power_trader_framework.protocols.container import IContainer
 from power_trader_framework.protocols.plugin import IPluginRegistry
-from power_trader_framework.settings import FrameworkSettings
+from power_trader_framework.settings import FrameworkSettings, JsonFileSettings
 from power_trader_framework.types.market import (MarketBar, TickerSymbol,
                                                  TimeInterval)
 from power_trader_framework.types.signals import (SignalMetadata, SignalType,
@@ -30,5 +30,6 @@ __all__ = [
     "IContainer",
     "IPluginRegistry",
     "FrameworkSettings",
+    "JsonFileSettings",
     "create_application",
 ]

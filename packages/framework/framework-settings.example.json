@@ -1,0 +1,6 @@
+{
+  "environment": "development",
+  "log_level": "INFO",
+  "plugin_discovery_enabled": true,
+  "shutdown_timeout_seconds": 10.0
+}

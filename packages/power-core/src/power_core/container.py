@@ -58,6 +58,40 @@ class Container:
     # ------------------------------------------------------------------
     # Registration
     # ------------------------------------------------------------------
+    @overload
+    def register(
+        self,
+        interface: type[Any],
+        implementation: type[Any],
+        *,
+        lifetime: str = "singleton",
+        **kwargs: Any,
+    ) -> None:
+        """Register a concrete class (constructor-injected)."""
+        ...
+
+    @overload
+    def register(
+        self,
+        interface: type[Any],
+        implementation: Callable[..., Any],
+        *,
+        lifetime: str = "singleton",
+        **kwargs: Any,
+    ) -> None:
+        """Register a factory callable, e.g. ``lambda: make_thing()``."""
+        ...
+
+    @overload
+    def register(
+        self,
+        interface: type[Any],
+        *,
+        lifetime: str = "singleton",
+    ) -> None:
+        """Register a concrete type to itself."""
+        ...
+
     def register(
         self,
         interface: type[Any],
@@ -67,6 +101,10 @@ class Container:
         **kwargs: Any,
     ) -> None:
         """Register an implementation against an interface type.
+
+        ``implementation`` may be either a concrete class (its constructor is
+        dependency-injected) or a factory callable (invoked with ``**kwargs``).
+        When omitted, ``interface`` itself is registered.
 
         Args:
             interface: The type other objects depend on (protocol or concrete class).
@@ -95,10 +133,39 @@ class Container:
             extra_kwargs=kwargs,
         )
 
+    @overload
+    def register_instance(self, interface: type[Any], instance: Callable[[], Any]) -> None:
+        """Register a lazy zero-arg factory, e.g. ``lambda: make_thing()``."""
+        ...
+
+    @overload
     def register_instance(self, interface: type[Any], instance: Any) -> None:
-        """Register an already-constructed instance (useful for mocks/config)."""
+        """Register an already-constructed instance."""
+        ...
+
+    def register_instance(self, interface: type[Any], instance: Any) -> None:
+        """Register an already-constructed instance or a lazy factory.
+
+        When ``instance`` is callable (a zero-arg factory such as
+        ``lambda: make_thing()``) it is stored as a lazily-constructed
+        singleton; otherwise ``instance`` is stored directly as an eager
+        singleton (useful for mocks/config).
+
+        Raises:
+            DIError: If ``interface`` is already registered.
+        """
         if interface in self._registry:
             raise DIError(f"Type '{interface.__name__}' is already registered")
+
+        if callable(instance) and not isinstance(instance, type):
+            # Lazy factory: construct on first resolve, then cache.
+            self._registry[interface] = Registration(
+                interface=interface,
+                implementation=instance,
+                lifetime="singleton",
+            )
+            return
+
         reg = Registration(
             interface=interface,
             implementation=lambda: instance,

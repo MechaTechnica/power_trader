@@ -1,0 +1,11 @@
+{
+  "ib": {
+    "host": "127.0.0.1",
+    "port": 7497,
+    "client_id": 1
+  },
+  "trading": {
+    "default_interval_seconds": 60,
+    "max_concurrent_symbols": 10
+  }
+}
