@@ -78,3 +78,30 @@ await registry.initialize_all()
 ## License
 
 MIT
+# Power Core
+
+## Strategy plugins
+
+Strategies are independently installed packages discovered through the standard
+Python entry-point group `power_trader.strategies`. An entry point must target a
+subclass of [`Plugin`](../framework/src/power_trader_framework/plugins.py:13).
+Set the plugin's stable `name` class attribute to the same value used by its
+entry point. The runtime validates this match before any strategy is registered.
+
+```toml
+[project.entry-points."power_trader.strategies"]
+mean_reversion = "my_strategy.plugin:MeanReversionPlugin"
+```
+
+```python
+class MeanReversionPlugin(Plugin):
+    name = "mean_reversion"
+
+    def register(self, container: Container) -> None:
+        container.register(Strategy, MeanReversionStrategy)
+```
+
+[`PluginRegistry`](src/power_core/di_container.py:25) discovers entries in a
+stable order, validates all entries before registering any of them, and is safe
+to call repeatedly. Its constructor supports an alternate entry-point group and
+provider for application-specific ecosystems and deterministic tests.

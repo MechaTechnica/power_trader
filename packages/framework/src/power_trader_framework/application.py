@@ -2,7 +2,7 @@
 
 Applications are described by two pieces:
 
-- a :class:`Plugin` (its wiring, via ``on_register``), and
+- a :class:`Plugin` (its wiring, via ``register``), and
 - an :class:`ApplicationBase` (its lifecycle and run entry point).
 
 Use :class:`ApplicationBuilder` to assemble and run them:
@@ -21,12 +21,12 @@ never on ``power_core`` directly.
 """
 
 import importlib.metadata
-from collections.abc import Awaitable, Callable
-from typing import Protocol
+from collections.abc import Awaitable, Callable, Iterable
+from typing import Protocol, Self
 
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
-from power_trader_framework.protocols.plugin import PluginRegistry
+from power_trader_framework.protocols.plugin import PluginRegistry, StrategyLifecycle
 from power_trader_framework.protocols.strategy import Strategy
 from power_trader_framework.settings import FrameworkSettings
 
@@ -136,9 +136,22 @@ class ApplicationBuilder:
         self._application_class = application_class
         self._plugin_classes: list[type[Plugin]] = []
 
-    def with_plugin(self, plugin_class: type[Plugin]) -> "ApplicationBuilder":
-        """Add a plugin that registers services via ``on_register``."""
+    def with_plugin(self, plugin_class: type[Plugin]) -> Self:
+        """Add an application-wiring plugin class.
+
+        Plugins are instantiated only during :meth:`build`, keeping builder
+        construction side-effect free.
+        """
         self._plugin_classes.append(plugin_class)
+        return self
+
+    def with_plugins(self, plugin_classes: Iterable[type[Plugin]]) -> Self:
+        """Add application-wiring plugins from any iterable.
+
+        This supports feature modules that expose a collection of plugins while
+        preserving the supplied registration order.
+        """
+        self._plugin_classes.extend(plugin_classes)
         return self
 
     def build(self) -> Application:
@@ -148,31 +161,28 @@ class ApplicationBuilder:
 
         def configure_container(
             container: Container,
-            framework_settings: FrameworkSettings,
-            plugin_registry: PluginRegistry,
+            _framework_settings: FrameworkSettings,
+            registry: PluginRegistry,
         ) -> None:
-            # Framework-managed services (strategies).
-            plugin_registry.discover_strategies()
-            plugin_registry.build_strategies(container)
-            container.register(
-                list[Strategy],
-                lambda registry: registry.get_all_strategies(),
-                registry=plugin_registry,
-            )
+            # Strategy composition: discover plugins, build instances, and bind
+            # ``list[Strategy]`` so use cases can inject them.
+            registry.discover()
+            registry.build(container)
+            container.register(list[Strategy], registry.get_all)
             # Application plugins' own registrations.
             for plugin in plugins:
-                plugin.on_register(container)
+                plugin.register(container)
 
         def on_app_created(runtime_app: ApplicationRuntime) -> None:
             application.container = runtime_app.container
 
             async def init_strategies() -> None:
-                registry = runtime_app.container.resolve(PluginRegistry)
-                await registry.initialize_all()
+                lifecycle = runtime_app.container.resolve(StrategyLifecycle)
+                await lifecycle.initialize()
 
             async def cleanup_strategies() -> None:
-                registry = runtime_app.container.resolve(PluginRegistry)
-                await registry.cleanup_all()
+                lifecycle = runtime_app.container.resolve(StrategyLifecycle)
+                await lifecycle.cleanup()
 
             runtime_app.on_startup(init_strategies)
             runtime_app.on_startup(application.on_startup)

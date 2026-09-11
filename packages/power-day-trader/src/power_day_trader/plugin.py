@@ -19,7 +19,7 @@ from power_trader_framework.protocols.strategy import SignalAggregator
 class PowerDayTraderPlugin(Plugin):
     """Power Day Trader application wiring."""
 
-    def on_register(self, container: Container) -> None:
+    def register(self, container: Container) -> None:
         """Register the application's settings, adapters, and use cases."""
         app_settings = PowerTraderSettings.load()
         container.register_instance(PowerTraderSettings, app_settings)

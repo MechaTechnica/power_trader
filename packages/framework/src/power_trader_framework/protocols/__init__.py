@@ -7,7 +7,8 @@ from power_trader_framework.protocols.data import (MarketDataProvider,
 from power_trader_framework.protocols.lifecycle import (ApplicationLifecycle,
                                                         HealthCheck)
 from power_trader_framework.protocols.output import OutputPresenter
-from power_trader_framework.protocols.plugin import PluginRegistry
+from power_trader_framework.protocols.plugin import (PluginRegistry,
+                                                     StrategyLifecycle)
 from power_trader_framework.protocols.strategy import (SignalAggregator,
                                                        Strategy)
 
@@ -20,6 +21,7 @@ __all__ = [
     "HealthCheck",
     "OutputPresenter",
     "PluginRegistry",
+    "StrategyLifecycle",
     "SignalAggregator",
     "Strategy",
 ]

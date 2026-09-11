@@ -7,11 +7,7 @@ from power_trader_framework.application import ApplicationBuilder
 
 def cli() -> None:
     """Build and run the Power Day Trader application."""
-    app = (
-        ApplicationBuilder(PowerDayTraderApplication)
-        .with_plugin(PowerDayTraderPlugin)
-        .build()
-    )
+    app = ApplicationBuilder(PowerDayTraderApplication).with_plugins([PowerDayTraderPlugin]).build()
     app.run()
 
 

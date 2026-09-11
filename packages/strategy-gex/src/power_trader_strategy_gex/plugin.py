@@ -15,6 +15,8 @@ from power_trader_strategy_gex.strategy import GEXStrategy
 class GEXPlugin(Plugin):
     """Plugin wiring for the GEX strategy."""
 
-    def on_register(self, container: Container) -> None:
+    name = "gex"
+
+    def register(self, container: Container) -> None:
         container.register(GEXCalculator)
         container.register(Strategy, GEXStrategy)

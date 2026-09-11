@@ -14,5 +14,7 @@ from power_trader_strategy_momentum.strategy import MomentumStrategy
 class MomentumPlugin(Plugin):
     """Plugin wiring for the momentum strategy."""
 
-    def on_register(self, container: Container) -> None:
+    name = "momentum"
+
+    def register(self, container: Container) -> None:
         container.register(Strategy, MomentumStrategy)

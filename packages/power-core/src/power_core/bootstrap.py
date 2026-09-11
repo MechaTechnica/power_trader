@@ -21,6 +21,7 @@ from power_trader_framework.protocols.container import \
     Container as ContainerProtocol
 from power_trader_framework.protocols.plugin import \
     PluginRegistry as PluginRegistryProtocol
+from power_trader_framework.protocols.plugin import StrategyLifecycle
 from power_trader_framework.settings import FrameworkSettings
 
 #: Callback applications implement to register their own dependencies.
@@ -45,8 +46,8 @@ def create_application(
 
     1. Creates the ``Container`` (applications never do this themselves).
     2. Loads ``FrameworkSettings`` from the environment and registers it.
-    3. Creates the ``PluginRegistry`` and registers it under both its
-       concrete type and the ``PluginRegistry`` protocol.
+    3. Creates the ``PluginRegistry`` and registers it under its concrete
+       type, the ``PluginRegistry`` protocol, and ``StrategyLifecycle``.
     4. Invokes ``configure_container`` so the application can register its
        own settings, adapters, and use cases against the container.
     5. Creates the ``Application`` instance and invokes ``on_app_created``
@@ -71,6 +72,7 @@ def create_application(
     plugin_registry = PluginRegistry()
     container.register_instance(PluginRegistryProtocol, plugin_registry)
     container.register_instance(PluginRegistry, plugin_registry)
+    container.register_instance(StrategyLifecycle, plugin_registry)
 
     configure_container(container, framework_settings, plugin_registry)
 
