@@ -16,7 +16,7 @@ dependencies = [
 power-framework = { workspace = true }
 
 [project.entry-points."power_trader.strategies"]
-gex = "power_trader_strategy_gex.strategy:GEXStrategy"
+gex = "power_trader_strategy_gex.plugin:GEXPlugin"
 
 [build-system]
 requires = ["hatchling"]

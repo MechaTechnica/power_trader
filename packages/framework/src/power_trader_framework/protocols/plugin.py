@@ -2,6 +2,9 @@
 
 from typing import Any, Protocol
 
+from power_trader_framework.plugins import PluginBase
+from power_trader_framework.protocols.container import IContainer
+
 
 class IPluginRegistry(Protocol):
     """
@@ -13,29 +16,39 @@ class IPluginRegistry(Protocol):
     """
 
     def discover_strategies(self) -> None:
-        """Discover strategies from installed entry points."""
+        """Discover strategy plugin classes from installed entry points."""
         ...
 
-    def register_strategy(self, name: str, strategy_class: type) -> None:
-        """Manually register a strategy class by name."""
+    def build_strategies(self, container: IContainer) -> None:
+        """Instantiate each discovered plugin and build its strategy.
+
+        For each plugin, a child container is created, the plugin's
+        ``on_register()`` is called so it registers its services (and itself
+        under ``IStrategy``), and the strategy is then resolved
+        (constructor-injected) from that container.
+        """
+        ...
+
+    def register_strategy(self, name: str, plugin_class: type[PluginBase]) -> None:
+        """Manually register a strategy plugin class by name."""
         ...
 
     def get_strategy(self, name: str) -> Any:
-        """Get a strategy instance by name (singleton per strategy)."""
+        """Get a built strategy instance by name (singleton per strategy)."""
         ...
 
     def get_all_strategies(self) -> list[Any]:
-        """Get all registered strategy instances."""
+        """Get all built strategy instances."""
         ...
 
     def get_strategy_names(self) -> list[str]:
-        """Get the names of all registered strategies."""
+        """Get the names of all registered strategy plugins."""
         ...
 
     async def initialize_all(self) -> None:
-        """Initialize all registered strategies."""
+        """Initialize all built strategies."""
         ...
 
     async def cleanup_all(self) -> None:
-        """Clean up all initialized strategies."""
+        """Clean up all built strategies."""
         ...

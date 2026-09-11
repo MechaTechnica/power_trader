@@ -10,6 +10,7 @@ __version__ = "0.1.0"
 
 from power_trader_framework.application import (ApplicationBase, IApplication,
                                                 create_application)
+from power_trader_framework.plugins import PluginBase
 from power_trader_framework.protocols.container import IContainer
 from power_trader_framework.protocols.plugin import IPluginRegistry
 from power_trader_framework.settings import FrameworkSettings, JsonFileSettings
@@ -29,6 +30,7 @@ __all__ = [
     "IApplication",
     "IContainer",
     "IPluginRegistry",
+    "PluginBase",
     "FrameworkSettings",
     "JsonFileSettings",
     "create_application",

@@ -30,14 +30,16 @@ class GEXStrategy:
 
     def __init__(
         self,
+        calculator: GEXCalculator,
         lookback_days: int = 30,
         proximity_threshold: float = 0.02,  # 2% from GEX level
         min_gex_strength: float = 0.3,  # Minimum 30% strength to consider
     ) -> None:
         """
         Initialize GEX strategy.
-        
+
         Args:
+            calculator: Injected GEX calculator service.
             lookback_days: Days to look back for options data
             proximity_threshold: Price must be within this % of GEX level
             min_gex_strength: Minimum normalized strength (0-1) to consider a level
@@ -45,8 +47,8 @@ class GEXStrategy:
         self.lookback_days = lookback_days
         self.proximity_threshold = proximity_threshold
         self.min_gex_strength = min_gex_strength
-        self.gex_calculator = GEXCalculator()
-        
+        self.gex_calculator = calculator
+
         # Cache for options data (would be fetched from IB in production)
         self._options_cache: list[OptionData] = []
 

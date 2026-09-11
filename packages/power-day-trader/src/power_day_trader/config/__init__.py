@@ -1,5 +1,5 @@
 """Configuration management."""
 
-from power_day_trader.config.settings import ApplicationSettings
+from power_day_trader.config.settings import PowerTraderSettings
 
-__all__ = ["ApplicationSettings"]
+__all__ = ["PowerTraderSettings"]

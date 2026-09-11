@@ -1,19 +1,19 @@
 """Dependency injection container implementation."""
 
 import importlib.metadata
-from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any
 
-from power_core.exceptions import DIError, PluginError
-from that_depends import BaseContainer, providers
-
-T = TypeVar("T")
+from power_core.exceptions import PluginError
+from power_trader_framework.plugins import PluginBase
+from power_trader_framework.protocols.container import IContainer
+from power_trader_framework.protocols.strategy import IStrategy
+from that_depends import BaseContainer
 
 
 class DIContainer(BaseContainer):
     """
     Dependency injection container for the application.
-    
+
     Uses that-depends for automatic constructor injection based on type hints.
     Application-specific container extends this to register dependencies.
     """
@@ -24,81 +24,92 @@ class DIContainer(BaseContainer):
 class PluginRegistry:
     """
     Registry for strategy plugins.
-    
-    Discovers and loads strategies from installed packages using entry points.
+
+    Discovers and loads strategy plugins from installed packages using entry
+    points. Each plugin is a ``register(container)`` function (in its package's
+    ``plugin.py``) that registers the strategy and its dependencies into the
+    container it is given.
     """
 
     ENTRY_POINT_GROUP = "power_trader.strategies"
 
     def __init__(self) -> None:
-        self._strategies: dict[str, type] = {}
-        self._initialized_instances: dict[str, Any] = {}
+        self._plugins: dict[str, type[PluginBase]] = {}
+        self._instances: dict[str, Any] = {}
 
     def discover_strategies(self) -> None:
         """
-        Discover strategies using entry points.
-        
-        Strategies register themselves via pyproject.toml:
+        Discover strategy plugins using entry points.
+
+        Each strategy registers itself via pyproject.toml:
         [project.entry-points."power_trader.strategies"]
-        my_strategy = "my_package.strategy:MyStrategy"
-        
+        my_strategy = "my_package.plugin:register"
+
         Raises:
             PluginError: If plugin loading fails
         """
-        try:
-            entry_points = importlib.metadata.entry_points()
-            
-            # Handle both old and new entry_points API
-            if hasattr(entry_points, "select"):
-                group = entry_points.select(group=self.ENTRY_POINT_GROUP)
-            else:
-                group = entry_points.get(self.ENTRY_POINT_GROUP, [])
-            
-            for entry_point in group:
-                try:
-                    strategy_class = entry_point.load()
-                    self.register_strategy(entry_point.name, strategy_class)
-                except Exception as e:
-                    raise PluginError(
-                        f"Failed to load strategy '{entry_point.name}': {e}"
-                    ) from e
-                    
-        except Exception as e:
-            raise PluginError(f"Failed to discover strategies: {e}") from e
+        entry_points = importlib.metadata.entry_points()
 
-    def register_strategy(self, name: str, strategy_class: type) -> None:
-        """Manually register a strategy."""
-        if name in self._strategies:
+        # Handle both old and new entry_points API
+        if hasattr(entry_points, "select"):
+            group = entry_points.select(group=self.ENTRY_POINT_GROUP)
+        else:  # pragma: no cover - legacy entry_points() API
+            group = entry_points.get(self.ENTRY_POINT_GROUP, [])  # type: ignore[arg-type]
+
+        for entry_point in group:
+            try:
+                plugin = entry_point.load()
+                self.register_strategy(entry_point.name, plugin)
+            except Exception as e:
+                raise PluginError(
+                    f"Failed to load strategy plugin '{entry_point.name}': {e}"
+                ) from e
+
+    def register_strategy(self, name: str, plugin_class: type[PluginBase]) -> None:
+        """Manually register a strategy plugin class by name."""
+        if name in self._plugins:
             raise PluginError(f"Strategy '{name}' already registered")
-        self._strategies[name] = strategy_class
+        self._plugins[name] = plugin_class
+
+    def build_strategies(self, container: IContainer) -> None:
+        """Instantiate each strategy via its own child container.
+
+        For each plugin, a child container is created, the plugin class is
+        instantiated, its ``on_register()`` is called so it registers its
+        services (and itself under ``IStrategy``), and the strategy is then
+        resolved from that container with constructor injection.
+        """
+        for name, plugin_class in self._plugins.items():
+            child = container.create_child()
+            plugin_class().on_register(child)
+            self._instances[name] = child.resolve(IStrategy)
 
     def get_strategy(self, name: str) -> Any:
-        """Get strategy instance by name (singleton per strategy)."""
-        if name not in self._strategies:
+        """Get a built strategy instance by name (singleton per strategy)."""
+        if name not in self._plugins:
             raise PluginError(f"Strategy '{name}' not found")
-        
-        if name not in self._initialized_instances:
-            strategy_class = self._strategies[name]
-            self._initialized_instances[name] = strategy_class()
-        
-        return self._initialized_instances[name]
+        if name not in self._instances:
+            raise PluginError(
+                f"Strategy '{name}' has not been built; call build_strategies() first"
+            )
+        return self._instances[name]
 
     def get_all_strategies(self) -> list[Any]:
-        """Get all registered strategy instances."""
-        return [self.get_strategy(name) for name in self._strategies.keys()]
+        """Get all built strategy instances."""
+        return list(self._instances.values())
 
     def get_strategy_names(self) -> list[str]:
-        """Get names of all registered strategies."""
-        return list(self._strategies.keys())
+        """Get names of all registered strategy plugins."""
+        return list(self._plugins.keys())
 
     async def initialize_all(self) -> None:
-        """Initialize all registered strategies."""
+        """Initialize all built strategies."""
         for strategy in self.get_all_strategies():
             if hasattr(strategy, "initialize"):
                 await strategy.initialize()
 
     async def cleanup_all(self) -> None:
-        """Cleanup all initialized strategies."""
-        for strategy in self._initialized_instances.values():
+        """Clean up all built strategies."""
+        for strategy in self._instances.values():
             if hasattr(strategy, "cleanup"):
                 await strategy.cleanup()

@@ -27,7 +27,7 @@ class MomentumStrategy:
     def __init__(self, lookback_periods: int = 10) -> None:
         """
         Initialize strategy.
-        
+
         Args:
             lookback_periods: Number of bars to look back for momentum calculation
         """

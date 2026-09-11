@@ -15,6 +15,10 @@ class IContainer(Protocol):
     so they never need to import a concrete container implementation.
     """
 
+    def create_child(self) -> "IContainer":
+        """Create a child container that falls back to this one for lookups."""
+        ...
+
     @overload
     def register(
         self,

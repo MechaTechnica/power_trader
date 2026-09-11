@@ -35,7 +35,7 @@ class TradingSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="TRADING_")
 
 
-class ApplicationSettings(JsonFileSettings):
+class PowerTraderSettings(JsonFileSettings):
     """
     Power Day Trader application settings.
 
@@ -57,6 +57,6 @@ class ApplicationSettings(JsonFileSettings):
     )
 
     @classmethod
-    def load(cls) -> "ApplicationSettings":
+    def load(cls) -> "PowerTraderSettings":
         """Load application settings from environment and optional JSON file."""
         return cls()

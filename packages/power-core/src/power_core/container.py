@@ -52,8 +52,17 @@ class Registration:
 class Container:
     """Registry that resolves dependency graphs by type."""
 
-    def __init__(self) -> None:
+    def __init__(self, parent: "Container | None" = None) -> None:
         self._registry: dict[type[Any], Registration] = {}
+        self._parent = parent
+
+    def create_child(self) -> "Container":
+        """Create a child container that falls back to this one for lookups.
+
+        Useful for scoped/isolated registrations (e.g. one per strategy) that
+        can still resolve dependencies registered on the parent.
+        """
+        return Container(parent=self)
 
     # ------------------------------------------------------------------
     # Registration
@@ -229,15 +238,16 @@ class Container:
     # Internals
     # ------------------------------------------------------------------
     def _get_registration(self, interface: type[Any]) -> Registration:
-        try:
+        if interface in self._registry:
             return self._registry[interface]
-        except KeyError:
-            # Allow unregistered concrete types to self-register if resolvable.
-            origin = getattr(interface, "__origin__", None)
-            raise DIError(
-                f"No registration for type '{getattr(origin, '__name__', interface.__name__)}'. "
-                f"Call container.register({interface.__name__}, <implementation>) first."
-            ) from None
+        if self._parent is not None:
+            return self._parent._get_registration(interface)
+        # Allow unregistered concrete types to self-register if resolvable.
+        origin = getattr(interface, "__origin__", None)
+        raise DIError(
+            f"No registration for type '{getattr(origin, '__name__', interface.__name__)}'. "
+            f"Call container.register({interface.__name__}, <implementation>) first."
+        )
 
     def _construct(
         self,
