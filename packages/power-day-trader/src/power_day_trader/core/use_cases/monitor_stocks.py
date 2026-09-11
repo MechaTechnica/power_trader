@@ -1,8 +1,8 @@
 """Monitor stocks use case - core business logic."""
 
-from power_trader_framework.protocols.data import IMarketDataProvider
-from power_trader_framework.protocols.output import IOutputPresenter
-from power_trader_framework.protocols.strategy import ISignalAggregator, IStrategy
+from power_trader_framework.protocols.data import MarketDataProvider
+from power_trader_framework.protocols.output import OutputPresenter
+from power_trader_framework.protocols.strategy import SignalAggregator, Strategy
 from power_trader_framework.types.market import TickerSymbol, TimeInterval
 from power_trader_framework.types.signals import SignalMetadata
 
@@ -21,10 +21,10 @@ class MonitorStocksUseCase:
 
     def __init__(
         self,
-        data_provider: IMarketDataProvider,
-        strategies: list[IStrategy],
-        aggregator: ISignalAggregator,
-        output: IOutputPresenter,
+        data_provider: MarketDataProvider,
+        strategies: list[Strategy],
+        aggregator: SignalAggregator,
+        output: OutputPresenter,
     ) -> None:
         """Inject dependencies through constructor (ports)."""
         self._data_provider = data_provider

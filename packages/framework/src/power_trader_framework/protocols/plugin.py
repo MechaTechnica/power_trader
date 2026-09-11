@@ -2,11 +2,10 @@
 
 from typing import Any, Protocol
 
-from power_trader_framework.plugins import PluginBase
-from power_trader_framework.protocols.container import IContainer
+from power_trader_framework.protocols.container import Container
 
 
-class IPluginRegistry(Protocol):
+class PluginRegistry(Protocol):
     """
     Protocol for the strategy plugin registry.
 
@@ -19,17 +18,17 @@ class IPluginRegistry(Protocol):
         """Discover strategy plugin classes from installed entry points."""
         ...
 
-    def build_strategies(self, container: IContainer) -> None:
+    def build_strategies(self, container: Container) -> None:
         """Instantiate each discovered plugin and build its strategy.
 
         For each plugin, a child container is created, the plugin's
         ``on_register()`` is called so it registers its services (and itself
-        under ``IStrategy``), and the strategy is then resolved
+        under ``Strategy``), and the strategy is then resolved
         (constructor-injected) from that container.
         """
         ...
 
-    def register_strategy(self, name: str, plugin_class: type[PluginBase]) -> None:
+    def register_strategy(self, name: str, plugin_class: type[Any]) -> None:
         """Manually register a strategy plugin class by name."""
         ...
 

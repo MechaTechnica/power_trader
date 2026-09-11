@@ -5,8 +5,8 @@ Runtime infrastructure for Power Trader applications.
 Provides concrete implementations of the framework's abstractions:
 Application lifecycle, DI container, and plugin registry.
 
-Applications should depend on ``power_trader_framework`` (protocols and
-``ApplicationBase``), not on this package directly.
+Applications should depend on ``power_trader_framework`` (protocols,
+``Plugin``, and ``ApplicationBuilder``), not on this package directly.
 """
 
 __version__ = "0.1.0"

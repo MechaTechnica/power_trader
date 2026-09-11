@@ -1,13 +1,13 @@
 """Interactive Brokers market scanner adapter."""
 
 from ib_insync import IB, ScannerSubscription
-from power_trader_framework.protocols.data import IMarketScanner
+from power_trader_framework.protocols.data import MarketScanner
 from power_trader_framework.types.market import TickerSymbol
 
 
 class InteractiveBrokersScannerAdapter:
     """
-    Interactive Brokers scanner adapter implementing IMarketScanner.
+    Interactive Brokers scanner adapter implementing MarketScanner.
     
     Uses IB's market scanner to find stocks matching criteria.
     """

@@ -7,10 +7,10 @@ adapters and use cases never need to know about the container itself.
 Usage
 -----
 >>> container = Container()
->>> container.register(ISignalAggregator, WeightedAverageAggregator)
->>> container.register(IMarketDataProvider, InteractiveBrokersAdapter,
+>>> container.register(SignalAggregator, WeightedAverageAggregator)
+>>> container.register(MarketDataProvider, InteractiveBrokersAdapter,
 ...                    host="127.0.0.1", port=7497, client_id=1)
->>> container.register(IOutputPresenter, TerminalOutputAdapter)
+>>> container.register(OutputPresenter, TerminalOutputAdapter)
 >>> container.register(MonitorStocksUseCase, MonitorStocksUseCase)
 >>> container.register(CLIAdapter, CLIAdapter)
 >>>

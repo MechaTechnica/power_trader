@@ -7,7 +7,7 @@ from typing import Protocol
 from power_trader_framework.types.market import MarketBar, TickerSymbol, TimeInterval
 
 
-class IMarketDataProvider(Protocol):
+class MarketDataProvider(Protocol):
     """
     Protocol for market data providers.
     
@@ -86,7 +86,7 @@ class IMarketDataProvider(Protocol):
         ...
 
 
-class IMarketScanner(Protocol):
+class MarketScanner(Protocol):
     """
     Protocol for scanning/discovering tradeable securities.
     

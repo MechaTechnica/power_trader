@@ -6,7 +6,7 @@ from power_trader_framework.types.market import MarketBar
 from power_trader_framework.types.signals import TradingSignal
 
 
-class IStrategy(Protocol):
+class Strategy(Protocol):
     """
     Protocol for ML trading strategies (plugins).
 
@@ -77,7 +77,7 @@ class IStrategy(Protocol):
         ...
 
 
-class ISignalAggregator(Protocol):
+class SignalAggregator(Protocol):
     """
     Protocol for aggregating signals from multiple strategies.
 

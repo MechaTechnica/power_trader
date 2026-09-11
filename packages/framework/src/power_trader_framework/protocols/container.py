@@ -6,7 +6,7 @@ from typing import Any, Protocol, TypeVar, overload
 T = TypeVar("T", covariant=True)
 
 
-class IContainer(Protocol):
+class Container(Protocol):
     """
     Protocol for a dependency injection container.
 
@@ -15,7 +15,7 @@ class IContainer(Protocol):
     so they never need to import a concrete container implementation.
     """
 
-    def create_child(self) -> "IContainer":
+    def create_child(self) -> "Container":
         """Create a child container that falls back to this one for lookups."""
         ...
 

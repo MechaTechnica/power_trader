@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from power_trader_framework.protocols.strategy import ISignalAggregator
+from power_trader_framework.protocols.strategy import SignalAggregator
 from power_trader_framework.types.signals import SignalType, TradingSignal
 
 
@@ -10,7 +10,7 @@ class WeightedAverageAggregator:
     """
     Aggregates signals using weighted average by confidence.
     
-    Implementation of ISignalAggregator protocol.
+    Implementation of SignalAggregator protocol.
     """
 
     def aggregate_signals(self, signals: list[TradingSignal]) -> TradingSignal:

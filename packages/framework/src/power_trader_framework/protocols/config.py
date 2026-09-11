@@ -3,7 +3,7 @@
 from typing import Any, Protocol
 
 
-class IConfigProvider(Protocol):
+class ConfigProvider(Protocol):
     """
     Protocol for configuration management.
     

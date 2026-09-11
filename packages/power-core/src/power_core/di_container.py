@@ -4,9 +4,9 @@ import importlib.metadata
 from typing import Any
 
 from power_core.exceptions import PluginError
-from power_trader_framework.plugins import PluginBase
-from power_trader_framework.protocols.container import IContainer
-from power_trader_framework.protocols.strategy import IStrategy
+from power_trader_framework.plugins import Plugin
+from power_trader_framework.protocols.container import Container
+from power_trader_framework.protocols.strategy import Strategy
 from that_depends import BaseContainer
 
 
@@ -34,7 +34,7 @@ class PluginRegistry:
     ENTRY_POINT_GROUP = "power_trader.strategies"
 
     def __init__(self) -> None:
-        self._plugins: dict[str, type[PluginBase]] = {}
+        self._plugins: dict[str, type[Plugin]] = {}
         self._instances: dict[str, Any] = {}
 
     def discover_strategies(self) -> None:
@@ -65,24 +65,24 @@ class PluginRegistry:
                     f"Failed to load strategy plugin '{entry_point.name}': {e}"
                 ) from e
 
-    def register_strategy(self, name: str, plugin_class: type[PluginBase]) -> None:
+    def register_strategy(self, name: str, plugin_class: type[Plugin]) -> None:
         """Manually register a strategy plugin class by name."""
         if name in self._plugins:
             raise PluginError(f"Strategy '{name}' already registered")
         self._plugins[name] = plugin_class
 
-    def build_strategies(self, container: IContainer) -> None:
+    def build_strategies(self, container: Container) -> None:
         """Instantiate each strategy via its own child container.
 
         For each plugin, a child container is created, the plugin class is
         instantiated, its ``on_register()`` is called so it registers its
-        services (and itself under ``IStrategy``), and the strategy is then
+        services (and itself under ``Strategy``), and the strategy is then
         resolved from that container with constructor injection.
         """
         for name, plugin_class in self._plugins.items():
             child = container.create_child()
             plugin_class().on_register(child)
-            self._instances[name] = child.resolve(IStrategy)
+            self._instances[name] = child.resolve(Strategy)
 
     def get_strategy(self, name: str) -> Any:
         """Get a built strategy instance by name (singleton per strategy)."""

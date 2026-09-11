@@ -3,7 +3,7 @@
 from typing import Protocol
 
 
-class IApplicationLifecycle(Protocol):
+class ApplicationLifecycle(Protocol):
     """
     Protocol for application lifecycle management.
     
@@ -35,7 +35,7 @@ class IApplicationLifecycle(Protocol):
         ...
 
 
-class IHealthCheck(Protocol):
+class HealthCheck(Protocol):
     """
     Protocol for health checks.
     

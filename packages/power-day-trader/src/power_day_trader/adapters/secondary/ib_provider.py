@@ -5,13 +5,13 @@ from datetime import datetime
 from decimal import Decimal
 
 from ib_insync import IB, Stock, util
-from power_trader_framework.protocols.data import IMarketDataProvider
+from power_trader_framework.protocols.data import MarketDataProvider
 from power_trader_framework.types.market import MarketBar, TickerSymbol, TimeInterval
 
 
 class InteractiveBrokersAdapter:
     """
-    Interactive Brokers adapter implementing IMarketDataProvider.
+    Interactive Brokers adapter implementing MarketDataProvider.
     
     Uses ib_insync library to communicate with IB TWS/Gateway.
     """

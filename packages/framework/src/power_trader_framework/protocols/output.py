@@ -6,7 +6,7 @@ from power_trader_framework.types.market import TickerSymbol
 from power_trader_framework.types.signals import SignalMetadata, TradingSignal
 
 
-class IOutputPresenter(Protocol):
+class OutputPresenter(Protocol):
     """
     Protocol for presenting trading signals.
     

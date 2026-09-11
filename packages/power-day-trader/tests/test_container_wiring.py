@@ -1,16 +1,21 @@
 """Tests for the trading app dependency container wiring."""
 
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
-from power_day_trader.main import PowerDayTraderApplication
-from power_trader_framework.protocols.container import IContainer
-from power_trader_framework.protocols.data import IMarketDataProvider
-from power_trader_framework.protocols.strategy import ISignalAggregator
+from power_day_trader.application import PowerDayTraderApplication
+from power_day_trader.plugin import PowerDayTraderPlugin
+from power_trader_framework.application import ApplicationBuilder
+from power_trader_framework.protocols.container import Container
+from power_trader_framework.protocols.data import MarketDataProvider
+from power_trader_framework.protocols.strategy import SignalAggregator
 
 
-def _build_container() -> IContainer:
-    """Build a container the same way the framework does, without running lifecycle hooks."""
-    app = PowerDayTraderApplication()
-    app.build()
+def _build_container() -> Container:
+    """Build a container the same way the framework does, without running the CLI."""
+    app = (
+        ApplicationBuilder(PowerDayTraderApplication)
+        .with_plugin(PowerDayTraderPlugin)
+        .build()
+    )
     return app.container
 
 
@@ -22,12 +27,12 @@ def test_build_container_resolves_cli_adapter():
 
 def test_build_container_resolves_singletons():
     container = _build_container()
-    aggregator = container.resolve(ISignalAggregator)
-    assert container.resolve(ISignalAggregator) is aggregator
+    aggregator = container.resolve(SignalAggregator)
+    assert container.resolve(SignalAggregator) is aggregator
 
 
 def test_build_container_provides_market_data():
     container = _build_container()
-    provider = container.resolve(IMarketDataProvider)
+    provider = container.resolve(MarketDataProvider)
     # The IB adapter is configured with defaults (no connection established during resolve).
     assert provider is not None

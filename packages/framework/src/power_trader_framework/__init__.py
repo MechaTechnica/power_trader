@@ -8,11 +8,13 @@ implementations live in ``power-core``.
 
 __version__ = "0.1.0"
 
-from power_trader_framework.application import (ApplicationBase, IApplication,
+from power_trader_framework.application import (Application, ApplicationBase,
+                                                ApplicationBuilder,
+                                                ApplicationRuntime,
                                                 create_application)
-from power_trader_framework.plugins import PluginBase
-from power_trader_framework.protocols.container import IContainer
-from power_trader_framework.protocols.plugin import IPluginRegistry
+from power_trader_framework.plugins import Plugin
+from power_trader_framework.protocols.container import Container
+from power_trader_framework.protocols.plugin import PluginRegistry
 from power_trader_framework.settings import FrameworkSettings, JsonFileSettings
 from power_trader_framework.types.market import (MarketBar, TickerSymbol,
                                                  TimeInterval)
@@ -26,11 +28,13 @@ __all__ = [
     "TimeInterval",
     "SignalMetadata",
     "TradingSignal",
+    "Application",
     "ApplicationBase",
-    "IApplication",
-    "IContainer",
-    "IPluginRegistry",
-    "PluginBase",
+    "ApplicationBuilder",
+    "ApplicationRuntime",
+    "Container",
+    "PluginRegistry",
+    "Plugin",
     "FrameworkSettings",
     "JsonFileSettings",
     "create_application",

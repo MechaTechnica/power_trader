@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from power_trader_framework.protocols.output import IOutputPresenter
+from power_trader_framework.protocols.output import OutputPresenter
 from power_trader_framework.types.market import TickerSymbol
 from power_trader_framework.types.signals import (SignalMetadata, SignalType,
                                                   TradingSignal)
@@ -15,7 +15,7 @@ class TerminalOutputAdapter:
     """
     Terminal output implementation using rich library.
     
-    Implements IOutputPresenter protocol.
+    Implements OutputPresenter protocol.
     """
 
     def __init__(self) -> None:
