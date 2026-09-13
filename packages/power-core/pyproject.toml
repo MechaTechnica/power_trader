@@ -14,8 +14,8 @@ dependencies = [
 [tool.uv.sources]
 power-framework = { workspace = true }
 
-[project.entry-points."power_trader.runtime"]
-create_application = "power_core.bootstrap:create_application"
+[project.entry-points."power.plugins"]
+power-core = "power_core.bootstrap:create_application"
 
 [project.optional-dependencies]
 dev = [

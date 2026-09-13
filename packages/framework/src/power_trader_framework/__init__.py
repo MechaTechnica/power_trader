@@ -10,12 +10,9 @@ __version__ = "0.1.0"
 
 from power_trader_framework.application import (Application, ApplicationBase,
                                                 ApplicationBuilder,
-                                                ApplicationRuntime,
-                                                create_application)
+                                                ApplicationRuntime)
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
-from power_trader_framework.protocols.plugin import (PluginRegistry,
-                                                     StrategyLifecycle)
 from power_trader_framework.settings import FrameworkSettings, JsonFileSettings
 from power_trader_framework.types.market import (MarketBar, TickerSymbol,
                                                  TimeInterval)
@@ -23,21 +20,18 @@ from power_trader_framework.types.signals import (SignalMetadata, SignalType,
                                                   TradingSignal)
 
 __all__ = [
-    "SignalType",
-    "MarketBar",
-    "TickerSymbol",
-    "TimeInterval",
-    "SignalMetadata",
-    "TradingSignal",
-    "Application",
-    "ApplicationBase",
-    "ApplicationBuilder",
-    "ApplicationRuntime",
-    "Container",
-    "PluginRegistry",
-    "StrategyLifecycle",
-    "Plugin",
-    "FrameworkSettings",
-    "JsonFileSettings",
-    "create_application",
+                                                "Application",
+                                                "ApplicationBase",
+                                                "ApplicationBuilder",
+                                                "ApplicationRuntime",
+                                                "Container",
+                                                "FrameworkSettings",
+                                                "JsonFileSettings",
+                                                "MarketBar",
+                                                "Plugin",
+                                                "SignalMetadata",
+                                                "SignalType",
+                                                "TickerSymbol",
+                                                "TimeInterval",
+                                                "TradingSignal",
 ]

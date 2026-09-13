@@ -2,26 +2,19 @@
 
 from power_trader_framework.protocols.config import ConfigProvider
 from power_trader_framework.protocols.container import Container
-from power_trader_framework.protocols.data import (MarketDataProvider,
-                                                   MarketScanner)
-from power_trader_framework.protocols.lifecycle import (ApplicationLifecycle,
-                                                        HealthCheck)
+from power_trader_framework.protocols.data import MarketDataProvider, MarketScanner
+from power_trader_framework.protocols.lifecycle import ApplicationLifecycle, HealthCheck
 from power_trader_framework.protocols.output import OutputPresenter
-from power_trader_framework.protocols.plugin import (PluginRegistry,
-                                                     StrategyLifecycle)
-from power_trader_framework.protocols.strategy import (SignalAggregator,
-                                                       Strategy)
+from power_trader_framework.protocols.strategy import SignalAggregator, Strategy
 
 __all__ = [
-    "ConfigProvider",
-    "Container",
-    "MarketDataProvider",
-    "MarketScanner",
-    "ApplicationLifecycle",
-    "HealthCheck",
-    "OutputPresenter",
-    "PluginRegistry",
-    "StrategyLifecycle",
-    "SignalAggregator",
-    "Strategy",
+                                                   "ApplicationLifecycle",
+                                                   "ConfigProvider",
+                                                   "Container",
+                                                   "HealthCheck",
+                                                   "MarketDataProvider",
+                                                   "MarketScanner",
+                                                   "OutputPresenter",
+                                                   "SignalAggregator",
+                                                   "Strategy",
 ]

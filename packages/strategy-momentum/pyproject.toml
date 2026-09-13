@@ -13,8 +13,8 @@ dependencies = [
 [tool.uv.sources]
 power-framework = { workspace = true }
 
-[project.entry-points."power_trader.strategies"]
-momentum = "power_trader_strategy_momentum.plugin:MomentumPlugin"
+[project.entry-points."power.plugins"]
+"strategy.momentum" = "power_trader_strategy_momentum.plugin:MomentumPlugin"
 
 [build-system]
 requires = ["hatchling"]

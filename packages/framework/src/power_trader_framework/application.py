@@ -7,33 +7,30 @@ Applications are described by two pieces:
 
 Use :class:`ApplicationBuilder` to assemble and run them:
 
-    app = (
-        ApplicationBuilder(MyApplication)
-        .with_plugin(MyPlugin)
-        .build()
-    )
+    app = ApplicationBuilder(MyApplication).build()
     app.run()
 
-The concrete runtime (``Container``, ``PluginRegistry``, ``Application``)
+The concrete runtime (``Container`` and ``Application``)
 lives in ``power-core``; the framework discovers it via a package entry point
 at build time, so applications depend only on ``power_trader_framework`` -
 never on ``power_core`` directly.
 """
 
+from __future__ import annotations
+
 import importlib.metadata
-from collections.abc import Awaitable, Callable, Iterable
-from typing import Protocol, Self
+from functools import lru_cache
+from typing import Awaitable, Callable, Protocol
 
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
-from power_trader_framework.protocols.plugin import PluginRegistry, StrategyLifecycle
-from power_trader_framework.protocols.strategy import Strategy
 from power_trader_framework.settings import FrameworkSettings
 
-#: Entry-point group/name that power-core registers to expose its runtime.
-_RUNTIME_ENTRY_POINT_GROUP = "power_trader.runtime"
-_RUNTIME_ENTRY_POINT_NAME = "create_application"
+PLUGIN_GROUP = "power.plugins"
+CORE_NAME = "power-core"  # name of the key
 
+#: Predicate applied to an entry point's name during discovery.
+EntryPointPredicate = Callable[[str], bool]
 
 class ApplicationRuntime(Protocol):
     """Protocol for the runtime application object produced by power-core."""
@@ -52,40 +49,78 @@ class ApplicationRuntime(Protocol):
 
 
 #: Callback applications implement to register their own dependencies.
-ConfigureContainer = Callable[[Container, FrameworkSettings, PluginRegistry], None]
+ConfigureContainer = Callable[[Container, FrameworkSettings], None]
 
 #: Callback applications implement to configure lifecycle hooks after the
 #: ``Application`` has been created.
 OnAppCreated = Callable[[ApplicationRuntime], None]
 
 
-def _load_runtime_factory() -> Callable[..., ApplicationRuntime]:
-    """Discover power-core's ``create_application`` via its entry point."""
-    entry_points = importlib.metadata.entry_points()
+@lru_cache(maxsize=1)
+def _get_entry_points() -> importlib.metadata.EntryPoints:
+    """Return all installed entry points, cached.
 
+    Entry points are fixed for the lifetime of the process after package
+    installation, so the result is safe to memoize.
+    """
+    return importlib.metadata.entry_points()
+
+
+def _filter_entry_points(
+    entry_points: importlib.metadata.EntryPoints,
+    group: str,
+    predicate: EntryPointPredicate,
+) -> list[importlib.metadata.EntryPoint]:
+    """Return the entry points in ``group`` whose name satisfies ``predicate``."""
     if hasattr(entry_points, "select"):
-        matches = entry_points.select(
-            group=_RUNTIME_ENTRY_POINT_GROUP, name=_RUNTIME_ENTRY_POINT_NAME
-        )
-    else:  # pragma: no cover - legacy entry_points() API
-        matches = entry_points.get(_RUNTIME_ENTRY_POINT_GROUP, ())  # type: ignore[arg-type]
+        entries = entry_points.select(group=group)
+    else:  # Legacy ``entry_points()`` returns a ``defaultdict`` without ``select``.
+        entries = entry_points.get(group, ())  # type: ignore[attr-defined]
+    return [entry_point for entry_point in entries if predicate(entry_point.name)]
 
-    for entry_point in matches:
-        return entry_point.load()  # type: ignore[no-any-return]
 
-    raise RuntimeError(
-        "No framework runtime found. Install 'power-core' and ensure it "
-        f"registers the '{_RUNTIME_ENTRY_POINT_GROUP}' entry point."
+def _load_runtime_factory() -> Callable[..., ApplicationRuntime]:
+    """Discover power-core's factory from the shared extension-point group."""
+    entry_points = _get_entry_points()
+    core_matches = _filter_entry_points(
+        entry_points, PLUGIN_GROUP, lambda name: name == CORE_NAME
     )
 
+    if not core_matches:
+        raise RuntimeError(
+            "No framework runtime found. Install 'power-core' and ensure it "
+            f"registers the '{PLUGIN_GROUP}' entry point named '{CORE_NAME}'."
+        )
+    if len(core_matches) > 1:
+        raise RuntimeError(
+            f"Multiple '{CORE_NAME}' entry points found in group "
+            f"'{PLUGIN_GROUP}'. Only one core runtime may be installed."
+        )
 
-def create_application(
-    configure_container: ConfigureContainer,
-    on_app_created: OnAppCreated | None = None,
-) -> ApplicationRuntime:
-    """Create an application using the discovered concrete runtime."""
-    factory = _load_runtime_factory()
-    return factory(configure_container, on_app_created)
+    return core_matches[0].load()  # type: ignore[no-any-return]
+
+
+def _load_plugin_factories() -> list[type[Plugin]]:
+    """Load and return every installed plugin class in the shared group.
+
+    The ``core`` entry point is the runtime factory rather than a plugin, so it
+    is excluded by name. Results are returned in deterministic (name-sorted)
+    order, and each loaded object must be a :class:`Plugin` subclass.
+    """
+    entry_points = _get_entry_points()
+    plugin_entries = _filter_entry_points(
+        entry_points, PLUGIN_GROUP, lambda name: name != CORE_NAME
+    )
+
+    plugins: list[type[Plugin]] = []
+    for entry_point in sorted(plugin_entries, key=lambda candidate: candidate.name):
+        plugin_class = entry_point.load()
+        if not isinstance(plugin_class, type) or not issubclass(plugin_class, Plugin):
+            raise TypeError(
+                f"Plugin entry point '{entry_point.name}' must expose a Plugin subclass"
+            )
+        plugins.append(plugin_class)
+    return plugins
 
 
 class ApplicationBase:
@@ -134,62 +169,34 @@ class ApplicationBuilder:
 
     def __init__(self, application_class: type[ApplicationBase]) -> None:
         self._application_class = application_class
-        self._plugin_classes: list[type[Plugin]] = []
 
-    def with_plugin(self, plugin_class: type[Plugin]) -> Self:
-        """Add an application-wiring plugin class.
+    def __initialize_plugins(self):
+        return [plugin_class() for plugin_class in _load_plugin_factories()]
 
-        Plugins are instantiated only during :meth:`build`, keeping builder
-        construction side-effect free.
-        """
-        self._plugin_classes.append(plugin_class)
-        return self
-
-    def with_plugins(self, plugin_classes: Iterable[type[Plugin]]) -> Self:
-        """Add application-wiring plugins from any iterable.
-
-        This supports feature modules that expose a collection of plugins while
-        preserving the supplied registration order.
-        """
-        self._plugin_classes.extend(plugin_classes)
-        return self
+    def __create_runtime(self, configure_container: ConfigureContainer, on_app_created: OnAppCreated | None = None) -> ApplicationRuntime:
+        factory = _load_runtime_factory()
+        return factory(configure_container, on_app_created)
 
     def build(self) -> Application:
         """Build the application: container, framework services, plugins, app."""
         application = self._application_class()
-        plugins = [plugin_class() for plugin_class in self._plugin_classes]
 
         def configure_container(
             container: Container,
             _framework_settings: FrameworkSettings,
-            registry: PluginRegistry,
         ) -> None:
-            # Strategy composition: discover plugins, build instances, and bind
-            # ``list[Strategy]`` so use cases can inject them.
-            registry.discover()
-            registry.build(container)
-            container.register(list[Strategy], registry.get_all)
-            # Application plugins' own registrations.
+            plugins = self.__initialize_plugins()
+
             for plugin in plugins:
                 plugin.register(container)
 
         def on_app_created(runtime_app: ApplicationRuntime) -> None:
             application.container = runtime_app.container
 
-            async def init_strategies() -> None:
-                lifecycle = runtime_app.container.resolve(StrategyLifecycle)
-                await lifecycle.initialize()
-
-            async def cleanup_strategies() -> None:
-                lifecycle = runtime_app.container.resolve(StrategyLifecycle)
-                await lifecycle.cleanup()
-
-            runtime_app.on_startup(init_strategies)
             runtime_app.on_startup(application.on_startup)
             runtime_app.on_shutdown(application.on_shutdown)
-            runtime_app.on_shutdown(cleanup_strategies)
 
-        runtime = create_application(configure_container, on_app_created=on_app_created)
+        runtime = self.__create_runtime(configure_container, on_app_created=on_app_created)
         return Application(runtime, application)
 
 

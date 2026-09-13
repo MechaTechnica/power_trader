@@ -2,7 +2,6 @@
 
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_day_trader.application import PowerDayTraderApplication
-from power_day_trader.plugin import PowerDayTraderPlugin
 from power_trader_framework.application import ApplicationBuilder
 from power_trader_framework.protocols.container import Container
 from power_trader_framework.protocols.data import MarketDataProvider
@@ -11,11 +10,7 @@ from power_trader_framework.protocols.strategy import SignalAggregator
 
 def _build_container() -> Container:
     """Build a container the same way the framework does, without running the CLI."""
-    app = (
-        ApplicationBuilder(PowerDayTraderApplication)
-        .with_plugin(PowerDayTraderPlugin)
-        .build()
-    )
+    app = ApplicationBuilder(PowerDayTraderApplication).build()
     return app.container
 
 

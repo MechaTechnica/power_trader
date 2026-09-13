@@ -1,13 +1,13 @@
 """Application bootstrap utilities (composition root).
 
 The *runtime* (power-core) owns creation of the concrete ``Container``,
-loading of ``FrameworkSettings``, and construction of the ``PluginRegistry``.
+loading of ``FrameworkSettings``.
 Applications never construct these themselves; they provide a
 ``configure_container`` callback (typed against the framework's ``Container``
-and ``PluginRegistry`` protocols) that registers their own
+protocol) that registers their own
 settings/adapters/use-cases.
 
-This function is exposed to the framework through the ``power_trader.runtime``
+This function is exposed to the framework through the shared ``power_trader.plugins``
 entry point, so applications depend only on ``power_trader_framework`` and
 never import ``power_core`` directly.
 """
@@ -16,17 +16,12 @@ from collections.abc import Callable
 
 from power_core.application import Application
 from power_core.container import Container
-from power_core.di_container import PluginRegistry
-from power_trader_framework.protocols.container import \
-    Container as ContainerProtocol
-from power_trader_framework.protocols.plugin import \
-    PluginRegistry as PluginRegistryProtocol
-from power_trader_framework.protocols.plugin import StrategyLifecycle
+from power_trader_framework.protocols.container import Container as ContainerProtocol
 from power_trader_framework.settings import FrameworkSettings
 
 #: Callback applications implement to register their own dependencies.
 ConfigureContainer = Callable[
-    [ContainerProtocol, FrameworkSettings, PluginRegistryProtocol], None
+    [ContainerProtocol, FrameworkSettings], None
 ]
 
 #: Callback applications implement to configure lifecycle hooks after the
@@ -46,9 +41,7 @@ def create_application(
 
     1. Creates the ``Container`` (applications never do this themselves).
     2. Loads ``FrameworkSettings`` from the environment and registers it.
-    3. Creates the ``PluginRegistry`` and registers it under its concrete
-       type, the ``PluginRegistry`` protocol, and ``StrategyLifecycle``.
-    4. Invokes ``configure_container`` so the application can register its
+    3. Invokes ``configure_container`` so the application can register its
        own settings, adapters, and use cases against the container.
     5. Creates the ``Application`` instance and invokes ``on_app_created``
        if provided, so the application can register startup/shutdown hooks.
@@ -69,12 +62,7 @@ def create_application(
     framework_settings = FrameworkSettings.load()
     container.register_instance(FrameworkSettings, framework_settings)
 
-    plugin_registry = PluginRegistry()
-    container.register_instance(PluginRegistryProtocol, plugin_registry)
-    container.register_instance(PluginRegistry, plugin_registry)
-    container.register_instance(StrategyLifecycle, plugin_registry)
-
-    configure_container(container, framework_settings, plugin_registry)
+    configure_container(container, framework_settings)
 
     app = Application(container)
 

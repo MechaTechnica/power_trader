@@ -12,6 +12,8 @@ authors = [
 dependencies = [
     "power-framework",
     "power-core",
+    "power-trader-strategy-gex",
+    "power-trader-strategy-momentum",
     "ib-insync>=0.9.86",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
@@ -22,6 +24,8 @@ dependencies = [
 [tool.uv.sources]
 power-framework = { workspace = true }
 power-core = { workspace = true }
+power-trader-strategy-gex = { workspace = true }
+power-trader-strategy-momentum = { workspace = true }
 
 [project.optional-dependencies]
 dev = [
@@ -35,6 +39,9 @@ dev = [
 
 [project.scripts]
 power-day-trader = "power_day_trader.main:cli"
+
+[project.entry-points."power.plugins"]
+"application.power-day-trader" = "power_day_trader.plugin:PowerDayTraderPlugin"
 
 [build-system]
 requires = ["hatchling"]
