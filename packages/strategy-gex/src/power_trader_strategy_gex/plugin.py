@@ -19,4 +19,4 @@ class GEXPlugin(Plugin):
 
     def register(self, container: Container) -> None:
         container.register(GEXCalculator)
-        container.register(Strategy, GEXStrategy)
+        container.register(Strategy[GEXStrategy], GEXStrategy)

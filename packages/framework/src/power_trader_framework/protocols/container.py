@@ -22,7 +22,7 @@ class Container(Protocol):
     @overload
     def register(
         self,
-        interface: type[Any],
+        interface: Any,
         implementation: type[Any],
         *,
         lifetime: str = "singleton",
@@ -34,7 +34,7 @@ class Container(Protocol):
     @overload
     def register(
         self,
-        interface: type[Any],
+        interface: Any,
         implementation: Callable[..., Any],
         *,
         lifetime: str = "singleton",
@@ -46,7 +46,7 @@ class Container(Protocol):
     @overload
     def register(
         self,
-        interface: type[Any],
+        interface: Any,
         *,
         lifetime: str = "singleton",
     ) -> None:
@@ -55,7 +55,7 @@ class Container(Protocol):
 
     def register(
         self,
-        interface: type[Any],
+        interface: Any,
         implementation: Any = None,
         *,
         lifetime: str = "singleton",
@@ -65,16 +65,16 @@ class Container(Protocol):
         ...
 
     @overload
-    def register_instance(self, interface: type[Any], instance: Callable[[], Any]) -> None:
+    def register_instance(self, interface: Any, instance: Callable[[], Any]) -> None:
         """Register a lazy zero-arg factory, e.g. ``lambda: make_thing()``."""
         ...
 
     @overload
-    def register_instance(self, interface: type[Any], instance: Any) -> None:
+    def register_instance(self, interface: Any, instance: Any) -> None:
         """Register an already-constructed instance."""
         ...
 
-    def register_instance(self, interface: type[Any], instance: Any) -> None:
+    def register_instance(self, interface: Any, instance: Any) -> None:
         """Register an already-constructed instance or a lazy factory."""
         ...
 
@@ -86,6 +86,14 @@ class Container(Protocol):
 
     def resolve(self, interface: type[Any]) -> Any:
         """Resolve ``interface``, building its dependency graph."""
+        ...
+
+    def resolve_all(self, interface: Any) -> list[Any]:
+        """Resolve every registered implementation of ``interface``.
+
+        Matches registrations whose unparameterized origin equals ``interface``,
+        so ``resolve_all(Strategy)`` returns every ``Strategy[T]`` specialization.
+        """
         ...
 
     async def resolve_async(self, interface: type[Any]) -> Any:

@@ -1,12 +1,18 @@
 """Strategy protocols for ML trading strategies."""
 
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 from power_trader_framework.types.market import MarketBar
 from power_trader_framework.types.signals import TradingSignal
 
+#: Discriminator type parameter. Each strategy registers itself under a
+#: distinct ``Strategy[T]`` specialization (``T`` is typically its own
+#: implementation type), letting the container hold many strategies without
+#: key collisions. The container can then resolve *all* of them as a list.
+T = TypeVar("T")
 
-class Strategy(Protocol):
+
+class Strategy(Protocol[T]):
     """
     Protocol for ML trading strategies (plugins).
 

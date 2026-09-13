@@ -17,4 +17,4 @@ class MomentumPlugin(Plugin):
     name = "momentum"
 
     def register(self, container: Container) -> None:
-        container.register(Strategy, MomentumStrategy)
+        container.register(Strategy[MomentumStrategy], MomentumStrategy)

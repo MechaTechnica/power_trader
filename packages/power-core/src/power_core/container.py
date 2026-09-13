@@ -25,7 +25,7 @@ Lifetimes
 import inspect
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, TypeVar, overload
+from typing import Any, TypeVar, get_args, get_origin, overload
 
 from power_core.exceptions import DIError
 
@@ -36,6 +36,24 @@ Implementation = type[Any] | Callable[..., Any] | None
 
 # Sentinel for "no instance yet".
 _UNSET = object()
+
+
+def _type_name(t: Any) -> str:
+    """Return a human-readable name for a type or generic alias."""
+    origin = get_origin(t)
+    if origin is not None:
+        return getattr(origin, "__name__", str(origin))
+    return getattr(t, "__name__", str(t))
+
+
+def _origin_of(t: Any) -> Any:
+    """Return the unparameterized origin of ``t`` (or ``t`` itself)."""
+    origin = get_origin(t)
+    return origin if origin is not None else t
+
+
+#: Generic collection origins auto-resolved as a list of their items.
+_COLLECTION_ORIGINS = (list, tuple, set, frozenset)
 
 
 @dataclass
@@ -126,11 +144,11 @@ class Container:
             DIError: If ``interface`` is already registered or ``lifetime`` is invalid.
         """
         if interface in self._registry:
-            raise DIError(f"Type '{interface.__name__}' is already registered")
+            raise DIError(f"Type '{_type_name(interface)}' is already registered")
 
         if lifetime not in ("singleton", "transient"):
             raise DIError(
-                f"Invalid lifetime '{lifetime}' for '{interface.__name__}' "
+                f"Invalid lifetime '{lifetime}' for '{_type_name(interface)}' "
                 "(expected 'singleton' or 'transient')"
             )
 
@@ -164,7 +182,7 @@ class Container:
             DIError: If ``interface`` is already registered.
         """
         if interface in self._registry:
-            raise DIError(f"Type '{interface.__name__}' is already registered")
+            raise DIError(f"Type '{_type_name(interface)}' is already registered")
 
         if callable(instance) and not isinstance(instance, type):
             # Lazy factory: construct on first resolve, then cache.
@@ -234,19 +252,41 @@ class Container:
             reg.instance = instance
         return instance
 
+    def resolve_all(self, interface: Any) -> list[Any]:
+        """Resolve every registered implementation of ``interface``.
+
+        Matches registrations whose *unparameterized origin* equals
+        ``interface``, so ``resolve_all(Strategy)`` returns every
+        ``Strategy[T]`` specialization in registration order. Useful for
+        injecting ``list[Strategy]`` (or another collection) of plugins.
+        """
+        instances: list[Any] = []
+        for key in self._registry:
+            if _origin_of(key) is interface:
+                instances.append(self.resolve(key))
+        if self._parent is not None:
+            instances.extend(self._parent.resolve_all(interface))
+        return instances
+
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
+    def _has_registration(self, interface: Any) -> bool:
+        if interface in self._registry:
+            return True
+        if self._parent is not None:
+            return self._parent._has_registration(interface)
+        return False
+
     def _get_registration(self, interface: type[Any]) -> Registration:
         if interface in self._registry:
             return self._registry[interface]
         if self._parent is not None:
             return self._parent._get_registration(interface)
         # Allow unregistered concrete types to self-register if resolvable.
-        origin = getattr(interface, "__origin__", None)
         raise DIError(
-            f"No registration for type '{getattr(origin, '__name__', interface.__name__)}'. "
-            f"Call container.register({interface.__name__}, <implementation>) first."
+            f"No registration for type '{_type_name(interface)}'. "
+            f"Call container.register({_type_name(interface)}, <implementation>) first."
         )
 
     def _construct(
@@ -269,6 +309,12 @@ class Container:
         missing: list[str] = []
         for name, annotation in params.items():
             if name in kwargs:
+                continue
+            if get_origin(annotation) in _COLLECTION_ORIGINS:
+                if self._has_registration(annotation):
+                    kwargs[name] = self.resolve(annotation)
+                else:
+                    kwargs[name] = self._resolve_collection(annotation)
                 continue
             if annotation in (Any, inspect.Parameter.empty) or annotation is None:
                 # No type info: use its own interface registration or fail.
@@ -298,6 +344,12 @@ class Container:
                 f"Failed to construct '{getattr(impl, '__name__', str(impl))}': {e}"
             ) from e
 
+    def _resolve_collection(self, annotation: Any) -> Any:
+        """Resolve a collection annotation by gathering all item registrations."""
+        (item_type,) = get_args(annotation)
+        items = self.resolve_all(item_type)
+        return get_origin(annotation)(items)
+
     async def _construct_async(
         self,
         interface: type[Any],
@@ -309,6 +361,12 @@ class Container:
         missing: list[str] = []
         for name, annotation in params.items():
             if name in kwargs:
+                continue
+            if get_origin(annotation) in _COLLECTION_ORIGINS:
+                if self._has_registration(annotation):
+                    kwargs[name] = self.resolve(annotation)
+                else:
+                    kwargs[name] = self._resolve_collection(annotation)
                 continue
             if annotation in (Any, inspect.Parameter.empty) or annotation is None:
                 raise DIError(

@@ -8,6 +8,7 @@ from power_day_trader.adapters.secondary.signal_aggregator import \
 from power_day_trader.adapters.secondary.terminal_output import \
     TerminalOutputAdapter
 from power_day_trader.config.settings import PowerTraderSettings
+from power_day_trader.core.strategy_registry import StrategyRegistry
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
@@ -33,5 +34,6 @@ class PowerDayTraderPlugin(Plugin):
             client_id=app_settings.ib.client_id,
         )
         container.register(SignalAggregator, WeightedAverageAggregator)
+        container.register(StrategyRegistry, StrategyRegistry)
         container.register(MonitorStocksUseCase, MonitorStocksUseCase)
         container.register(CLIAdapter, CLIAdapter)
