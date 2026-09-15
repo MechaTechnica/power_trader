@@ -1,11 +1,11 @@
-"""Framework-level settings shared by every Power Trader application.
+"""Core runtime settings shared by every Power Trader application.
 
-These settings capture concerns that belong to the *framework* rather than
+These settings capture concerns that belong to the *core runtime* rather than
 to any specific trading application: logging, environment, plugin discovery,
-and other cross-cutting infrastructure concerns. Application-specific
-settings (e.g. broker credentials, trading parameters) belong in the
-application package instead and should typically compose ``FrameworkSettings``
-alongside their own application settings.
+and other cross-cutting infrastructure concerns. Application-specific settings
+(e.g. broker credentials, trading parameters) belong in the application package
+instead and should typically compose ``CoreSettings`` alongside their own
+application settings.
 """
 
 import os
@@ -81,17 +81,17 @@ class JsonFileSettings(BaseSettings):
         return tuple(sources)
 
 
-class FrameworkSettings(JsonFileSettings):
+class CoreSettings(JsonFileSettings):
     """
-    Settings for the Power Trader framework runtime.
+    Settings for the Power Trader core runtime.
 
-    Controlled via environment variables prefixed with ``POWER_FRAMEWORK_``
-    (e.g. ``POWER_FRAMEWORK_LOG_LEVEL=DEBUG``) and optionally a JSON file
+    Controlled via environment variables prefixed with ``POWER_CORE_``
+    (e.g. ``POWER_CORE_LOG_LEVEL=DEBUG``) and optionally a JSON file
     (see :class:`JsonFileSettings`).
     """
 
-    CONFIG_FILE_ENV = "POWER_FRAMEWORK_CONFIG_FILE"
-    DEFAULT_JSON_FILE = "framework-settings.json"
+    CONFIG_FILE_ENV = "POWER_CORE_CONFIG_FILE"
+    DEFAULT_JSON_FILE = "core-settings.json"
 
     environment: str = Field(
         default="development",
@@ -111,14 +111,14 @@ class FrameworkSettings(JsonFileSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_prefix="POWER_FRAMEWORK_",
+        env_prefix="POWER_CORE_",
         case_sensitive=False,
     )
 
     @classmethod
-    def load(cls) -> "FrameworkSettings":
-        """Load framework settings from environment and optional JSON file."""
+    def load(cls) -> "CoreSettings":
+        """Load core settings from environment and optional JSON file."""
         return cls()
 
 
-__all__ = ["FrameworkSettings", "JsonFileSettings"]
+__all__ = ["CoreSettings", "JsonFileSettings"]

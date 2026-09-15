@@ -1,7 +1,7 @@
 """Application-specific settings using Pydantic.
 
 Power Day Trader owns these settings; they are distinct from
-``power_trader_framework.settings.FrameworkSettings``, which holds generic
+``power_trader_framework.settings.CoreSettings``, which holds generic
 runtime concerns shared by every Power Trader application. This module holds
 settings that only make sense for *this* application (broker connection
 details, trading parameters, etc.).

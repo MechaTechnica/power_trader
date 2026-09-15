@@ -24,7 +24,6 @@ from typing import Awaitable, Callable, Protocol
 
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
-from power_trader_framework.settings import FrameworkSettings
 
 PLUGIN_GROUP = "power.plugins"
 CORE_NAME = "power-core"  # name of the key
@@ -48,8 +47,7 @@ class ApplicationRuntime(Protocol):
     async def run(self) -> None: ...
 
 
-#: Callback applications implement to register their own dependencies.
-ConfigureContainer = Callable[[Container, FrameworkSettings], None]
+ConfigureContainer = Callable[[Container], None]
 
 #: Callback applications implement to configure lifecycle hooks after the
 #: ``Application`` has been created.
@@ -181,10 +179,7 @@ class ApplicationBuilder:
         """Build the application: container, framework services, plugins, app."""
         application = self._application_class()
 
-        def configure_container(
-            container: Container,
-            _framework_settings: FrameworkSettings,
-        ) -> None:
+        def configure_container(container: Container) -> None:
             plugins = self.__initialize_plugins()
 
             for plugin in plugins:
@@ -205,5 +200,6 @@ __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
     "ApplicationRuntime",
+    "ConfigureContainer",
     "create_application",
 ]

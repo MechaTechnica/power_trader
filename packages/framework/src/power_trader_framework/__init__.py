@@ -10,10 +10,11 @@ __version__ = "0.1.0"
 
 from power_trader_framework.application import (Application, ApplicationBase,
                                                 ApplicationBuilder,
-                                                ApplicationRuntime)
+                                                ApplicationRuntime,
+                                                ConfigureContainer)
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
-from power_trader_framework.settings import FrameworkSettings, JsonFileSettings
+from power_trader_framework.settings import CoreSettings, JsonFileSettings
 from power_trader_framework.types.market import (MarketBar, TickerSymbol,
                                                  TimeInterval)
 from power_trader_framework.types.signals import (SignalMetadata, SignalType,
@@ -24,8 +25,9 @@ __all__ = [
                                                 "ApplicationBase",
                                                 "ApplicationBuilder",
                                                 "ApplicationRuntime",
+                                                "ConfigureContainer",
                                                 "Container",
-                                                "FrameworkSettings",
+                                                "CoreSettings",
                                                 "JsonFileSettings",
                                                 "MarketBar",
                                                 "Plugin",

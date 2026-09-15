@@ -1,7 +1,7 @@
 """Application bootstrap utilities (composition root).
 
 The *runtime* (power-core) owns creation of the concrete ``Container``,
-loading of ``FrameworkSettings``.
+loading of ``CoreSettings``.
 Applications never construct these themselves; they provide a
 ``configure_container`` callback (typed against the framework's ``Container``
 protocol) that registers their own
@@ -16,13 +16,8 @@ from collections.abc import Callable
 
 from power_core.application import Application
 from power_core.container import Container
-from power_trader_framework.protocols.container import Container as ContainerProtocol
-from power_trader_framework.settings import FrameworkSettings
-
-#: Callback applications implement to register their own dependencies.
-ConfigureContainer = Callable[
-    [ContainerProtocol, FrameworkSettings], None
-]
+from power_trader_framework.application import ConfigureContainer
+from power_trader_framework.settings import CoreSettings
 
 #: Callback applications implement to configure lifecycle hooks after the
 #: ``Application`` has been created. Synchronous - it should only *register*
@@ -40,17 +35,17 @@ def create_application(
     This is the runtime's entry point for building an application. It:
 
     1. Creates the ``Container`` (applications never do this themselves).
-    2. Loads ``FrameworkSettings`` from the environment and registers it.
+    2. Loads ``CoreSettings`` from the environment and registers it.
     3. Invokes ``configure_container`` so the application can register its
        own settings, adapters, and use cases against the container.
     5. Creates the ``Application`` instance and invokes ``on_app_created``
        if provided, so the application can register startup/shutdown hooks.
 
     Args:
-        configure_container: Callback invoked with ``(container,
-            framework_settings, plugin_registry)`` so the application can
-            register its own dependencies. Applications must not construct
-            their own ``Container``.
+        configure_container: Callback invoked with the ``container`` so the
+            application can register its own dependencies. Applications must
+            not construct their own ``Container``. ``CoreSettings`` is already
+            registered and can be resolved via ``container.resolve(CoreSettings)``.
         on_app_created: Optional callback to configure the app after
             creation.
 
@@ -59,10 +54,10 @@ def create_application(
     """
     container = Container()
 
-    framework_settings = FrameworkSettings.load()
-    container.register_instance(FrameworkSettings, framework_settings)
+    core_settings = CoreSettings.load()
+    container.register_instance(CoreSettings, core_settings)
 
-    configure_container(container, framework_settings)
+    configure_container(container)
 
     app = Application(container)
 
