@@ -10,7 +10,7 @@ Use :class:`ApplicationBuilder` to assemble and run them:
     app = ApplicationBuilder(MyApplication).build()
     app.run()
 
-The concrete runtime (``Container`` and ``Application``)
+The concrete runtime (``Container``)
 lives in ``power-core``; the framework discovers it via a package entry point
 at build time, so applications depend only on ``power_trader_framework`` -
 never on ``power_core`` directly.
@@ -19,8 +19,9 @@ never on ``power_core`` directly.
 from __future__ import annotations
 
 import importlib.metadata
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import Awaitable, Callable, Protocol
+from typing import Callable
 
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
@@ -31,31 +32,28 @@ CORE_NAME = "power-core"  # name of the key
 #: Predicate applied to an entry point's name during discovery.
 EntryPointPredicate = Callable[[str], bool]
 
-class ApplicationRuntime(Protocol):
-    """Protocol for the runtime application object produced by power-core."""
+
+@dataclass
+class ApplicationModel:
+    """The resolved runtime: a thin holder for the generic DI container.
+
+    The concrete runtime (``power-core``) builds this and returns it to the
+    framework, which reads ``container`` back into ``ApplicationBase``.
+    Applications depend on this model, never on ``power-core``.
+    """
 
     container: Container
-
-    def on_startup(self, func: Callable[[], Awaitable[None]]) -> None: ...
-
-    def on_shutdown(self, func: Callable[[], Awaitable[None]]) -> None: ...
-
-    async def start(self) -> None: ...
-
-    async def stop(self) -> None: ...
-
-    async def run(self) -> None: ...
 
 
 ConfigureContainer = Callable[[Container], None]
 
-#: Callback applications implement to configure lifecycle hooks after the
-#: ``Application`` has been created.
-OnAppCreated = Callable[[ApplicationRuntime], None]
+#: Callback the framework uses to receive the built model and read its
+#: ``container``.
+OnAppCreated = Callable[[ApplicationModel], None]
 
 
 @lru_cache(maxsize=1)
-def _get_entry_points() -> importlib.metadata.EntryPoints:
+def _get_entry_points() -> Union[importlib.metadata.EntryPoints, importlib.metadata.SelectableGroups]:
     """Return all installed entry points, cached.
 
     Entry points are fixed for the lifetime of the process after package
@@ -77,7 +75,7 @@ def _filter_entry_points(
     return [entry_point for entry_point in entries if predicate(entry_point.name)]
 
 
-def _load_runtime_factory() -> Callable[..., ApplicationRuntime]:
+def _load_core() -> Callable[..., ApplicationModel]:
     """Discover power-core's factory from the shared extension-point group."""
     entry_points = _get_entry_points()
     core_matches = _filter_entry_points(
@@ -122,44 +120,68 @@ def _load_plugin_factories() -> list[type[Plugin]]:
 
 
 class ApplicationBase:
-    """
-    Base class for an application's lifecycle and run entry point.
+    """Base class for an application's lifecycle and run entry point.
 
     Subclasses override ``on_startup``, ``on_shutdown``, and ``run``. The
-    framework sets ``container`` during the build so these hooks can resolve
-    services.
+    framework supplies the container through which services can be resolved.
     """
 
-    container: Container | None = None
-
-    async def on_startup(self) -> None:
-        """Startup tasks. Default is a no-op."""
-        return None
-
-    async def on_shutdown(self) -> None:
-        """Shutdown tasks. Default is a no-op."""
-        return None
-
-    def run(self) -> None:
-        """Run the application's entry point. Default is a no-op."""
-        return None
-
-
-class Application:
-    """A built application, produced by :meth:`ApplicationBuilder.build`."""
-
-    def __init__(self, runtime: ApplicationRuntime, application: ApplicationBase) -> None:
-        self._runtime = runtime
-        self._application = application
+    def __init__(self) -> None:
+        self._container: Container | None = None
 
     @property
     def container(self) -> Container:
-        """The DI container, with all services registered."""
-        return self._runtime.container
+        if self._container is None:
+            raise RuntimeError(
+                "Application has not been built; no container available."
+            )
+        return self._container
+    
+    @container.setter
+    def container(self, container: Container) -> None:
+        self._container = container
+
+    async def on_startup(self) -> None:
+        return None
+
+    async def on_shutdown(self) -> None:
+        return None
 
     def run(self) -> None:
-        """Run the application's entry point."""
-        self._application.run()
+        return None
+
+
+class ApplicationBootstrapper:
+    """Assemble plugins, a runtime, and an application instance.
+
+    This class bridges the framework's plugin discovery with the concrete
+    runtime (``power-core``) discovered via entry points, reading the built
+    container back into the application.
+    """
+
+    def __init__(self, application: ApplicationBase) -> None:
+        self.application = application
+
+    def _initialize_plugins(self) -> list[Plugin]:
+        """Instantiate one instance of every installed plugin."""
+        return [plugin_class() for plugin_class in _load_plugin_factories()]
+
+    def _create_runtime(self, configure_container: ConfigureContainer, on_app_created: OnAppCreated | None = None) -> ApplicationModel:
+        factory = _load_core()
+        return factory(configure_container, on_app_created)
+
+    def bootstrap(self) -> ApplicationBase:
+        """Build the runtime and wire plugins into it."""
+
+        def configure_container(container: Container) -> None:
+            for plugin in self._initialize_plugins():
+                plugin.register(container)
+
+        def on_app_created(model: ApplicationModel) -> None:
+            self.application.container = model.container
+
+        self._create_runtime(configure_container, on_app_created)
+        return self.application
 
 
 class ApplicationBuilder:
@@ -168,38 +190,16 @@ class ApplicationBuilder:
     def __init__(self, application_class: type[ApplicationBase]) -> None:
         self._application_class = application_class
 
-    def __initialize_plugins(self):
-        return [plugin_class() for plugin_class in _load_plugin_factories()]
-
-    def __create_runtime(self, configure_container: ConfigureContainer, on_app_created: OnAppCreated | None = None) -> ApplicationRuntime:
-        factory = _load_runtime_factory()
-        return factory(configure_container, on_app_created)
-
-    def build(self) -> Application:
+    def build(self) -> ApplicationBase:
         """Build the application: container, framework services, plugins, app."""
         application = self._application_class()
-
-        def configure_container(container: Container) -> None:
-            plugins = self.__initialize_plugins()
-
-            for plugin in plugins:
-                plugin.register(container)
-
-        def on_app_created(runtime_app: ApplicationRuntime) -> None:
-            application.container = runtime_app.container
-
-            runtime_app.on_startup(application.on_startup)
-            runtime_app.on_shutdown(application.on_shutdown)
-
-        runtime = self.__create_runtime(configure_container, on_app_created=on_app_created)
-        return Application(runtime, application)
+        return ApplicationBootstrapper(application).bootstrap()
 
 
 __all__ = [
-    "Application",
     "ApplicationBase",
     "ApplicationBuilder",
-    "ApplicationRuntime",
+    "ApplicationModel",
     "ConfigureContainer",
-    "create_application",
+    "OnAppCreated",
 ]

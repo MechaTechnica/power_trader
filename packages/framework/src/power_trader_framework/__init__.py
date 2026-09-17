@@ -8,9 +8,9 @@ implementations live in ``power-core``.
 
 __version__ = "0.1.0"
 
-from power_trader_framework.application import (Application, ApplicationBase,
+from power_trader_framework.application import (ApplicationBase,
                                                 ApplicationBuilder,
-                                                ApplicationRuntime,
+                                                ApplicationModel,
                                                 ConfigureContainer)
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
@@ -21,10 +21,9 @@ from power_trader_framework.types.signals import (SignalMetadata, SignalType,
                                                   TradingSignal)
 
 __all__ = [
-                                                "Application",
                                                 "ApplicationBase",
                                                 "ApplicationBuilder",
-                                                "ApplicationRuntime",
+                                                "ApplicationModel",
                                                 "ConfigureContainer",
                                                 "Container",
                                                 "CoreSettings",

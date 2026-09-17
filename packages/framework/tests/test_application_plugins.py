@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 
 from power_trader_framework.application import (CORE_NAME, PLUGIN_GROUP,
-                                                _load_plugin_factories,
-                                                _load_runtime_factory)
+                                                _load_core,
+                                                _load_plugin_factories)
 from power_trader_framework.plugins import Plugin
 
 
@@ -52,7 +52,7 @@ def test_runtime_is_loaded_from_core_in_the_shared_group(monkeypatch):
     entries = FakeEntryPoints([FakeEntryPoint(CORE_NAME, runtime_factory)])
     monkeypatch.setattr("importlib.metadata.entry_points", lambda: entries)
 
-    assert _load_runtime_factory() is runtime_factory
+    assert _load_core() is runtime_factory
     assert entries.calls == [(PLUGIN_GROUP, CORE_NAME)]
 
 

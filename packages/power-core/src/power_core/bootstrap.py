@@ -12,23 +12,17 @@ entry point, so applications depend only on ``power_trader_framework`` and
 never import ``power_core`` directly.
 """
 
-from collections.abc import Callable
-
-from power_core.application import Application
 from power_core.container import Container
-from power_trader_framework.application import ConfigureContainer
+from power_trader_framework.application import (ApplicationModel,
+                                                ConfigureContainer,
+                                                OnAppCreated)
 from power_trader_framework.settings import CoreSettings
-
-#: Callback applications implement to configure lifecycle hooks after the
-#: ``Application`` has been created. Synchronous - it should only *register*
-#: hooks (e.g. via ``app.on_startup(...)``), not execute async work itself.
-OnAppCreated = Callable[[Application], None]
 
 
 def create_application(
     configure_container: ConfigureContainer,
     on_app_created: OnAppCreated | None = None,
-) -> Application:
+) -> ApplicationModel:
     """
     Create and configure an application.
 
@@ -38,19 +32,19 @@ def create_application(
     2. Loads ``CoreSettings`` from the environment and registers it.
     3. Invokes ``configure_container`` so the application can register its
        own settings, adapters, and use cases against the container.
-    5. Creates the ``Application`` instance and invokes ``on_app_created``
-       if provided, so the application can register startup/shutdown hooks.
+    5. Builds an :class:`ApplicationModel` around the container and invokes
+       ``on_app_created`` if provided.
 
     Args:
         configure_container: Callback invoked with the ``container`` so the
             application can register its own dependencies. Applications must
             not construct their own ``Container``. ``CoreSettings`` is already
             registered and can be resolved via ``container.resolve(CoreSettings)``.
-        on_app_created: Optional callback to configure the app after
-            creation.
+        on_app_created: Optional callback invoked with the built model so the
+            caller can read its ``container``.
 
     Returns:
-        Configured Application instance.
+        The built ApplicationModel holding the resolved container.
     """
     container = Container()
 
@@ -59,10 +53,10 @@ def create_application(
 
     configure_container(container)
 
-    app = Application(container)
+    model = ApplicationModel(container)
 
     if on_app_created:
-        # Synchronous by design: it should only *register* hooks, not run them.
-        on_app_created(app)
+        # Synchronous by design: it should only read the model, not run async work.
+        on_app_created(model)
 
-    return app
+    return model
