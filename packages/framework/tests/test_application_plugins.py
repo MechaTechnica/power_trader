@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 
 from power_trader_framework.application import (CORE_NAME, PLUGIN_GROUP,
-                                                _load_core,
-                                                _load_plugin_factories)
+                                                _load_core_entry_point,
+                                                _load_plugins)
 from power_trader_framework.plugins import Plugin
 
 
@@ -52,7 +52,7 @@ def test_runtime_is_loaded_from_core_in_the_shared_group(monkeypatch):
     entries = FakeEntryPoints([FakeEntryPoint(CORE_NAME, runtime_factory)])
     monkeypatch.setattr("importlib.metadata.entry_points", lambda: entries)
 
-    assert _load_core() is runtime_factory
+    assert _load_core_entry_point() is runtime_factory
     assert entries.calls == [(PLUGIN_GROUP, CORE_NAME)]
 
 
@@ -67,13 +67,10 @@ def test_load_plugin_factories_excludes_core_and_loads_all_plugins(monkeypatch):
     )
     monkeypatch.setattr("importlib.metadata.entry_points", lambda: entries)
 
-    plugins = _load_plugin_factories()
+    plugins = _load_plugins()
 
-    # Sorted by entry-point name; ``core`` excluded.
-    assert plugins == [
-        FirstApplicationPlugin,
-        SecondApplicationPlugin,
-        SecondApplicationPlugin,
-    ]
+    # ``core`` excluded; `SecondApplicationPlugin` appears under two entry
+    # points but is deduplicated by type.
+    assert plugins == {FirstApplicationPlugin, SecondApplicationPlugin}
     assert entries.calls == [(PLUGIN_GROUP, None)]
 

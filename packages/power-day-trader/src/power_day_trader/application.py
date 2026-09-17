@@ -11,20 +11,20 @@ class PowerDayTraderApplication(ApplicationBase):
     """Power Day Trader application lifecycle and run entry point."""
 
     async def on_startup(self) -> None:
-        ib_provider = self.container.resolve(MarketDataProvider)
+        ib_provider = self.application_model.container.resolve(MarketDataProvider)
         await ib_provider.connect()
 
-        output = self.container.resolve(OutputPresenter)
+        output = self.application_model.container.resolve(OutputPresenter)
         await output.present_status("Power Day Trader started successfully")
 
     async def on_shutdown(self) -> None:
-        ib_provider = self.container.resolve(MarketDataProvider)
+        ib_provider = self.application_model.container.resolve(MarketDataProvider)
         await ib_provider.disconnect()
 
-        output = self.container.resolve(OutputPresenter)
+        output = self.application_model.container.resolve(OutputPresenter)
         await output.present_status("Power Day Trader shut down")
-        await self.container.resolve(StrategyRegistry).cleanup()
+        await self.application_model.container.resolve(StrategyRegistry).cleanup()
 
     def run(self) -> None:
-        cli_adapter = self.container.resolve(CLIAdapter)
+        cli_adapter = self.application_model.container.resolve(CLIAdapter)
         cli_adapter.create_cli()()

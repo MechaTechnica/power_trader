@@ -9,6 +9,5 @@ def cli() -> None:
     app = ApplicationBuilder(PowerDayTraderApplication).build()
     app.run()
 
-
 if __name__ == "__main__":
     cli()

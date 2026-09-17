@@ -19,10 +19,7 @@ from power_trader_framework.application import (ApplicationModel,
 from power_trader_framework.settings import CoreSettings
 
 
-def create_application(
-    configure_container: ConfigureContainer,
-    on_app_created: OnAppCreated | None = None,
-) -> ApplicationModel:
+def create_application() -> ApplicationModel:
     """
     Create and configure an application.
 
@@ -30,33 +27,14 @@ def create_application(
 
     1. Creates the ``Container`` (applications never do this themselves).
     2. Loads ``CoreSettings`` from the environment and registers it.
-    3. Invokes ``configure_container`` so the application can register its
-       own settings, adapters, and use cases against the container.
-    5. Builds an :class:`ApplicationModel` around the container and invokes
+    3. Builds an :class:`ApplicationModel` around the container and invokes
        ``on_app_created`` if provided.
-
-    Args:
-        configure_container: Callback invoked with the ``container`` so the
-            application can register its own dependencies. Applications must
-            not construct their own ``Container``. ``CoreSettings`` is already
-            registered and can be resolved via ``container.resolve(CoreSettings)``.
-        on_app_created: Optional callback invoked with the built model so the
-            caller can read its ``container``.
 
     Returns:
         The built ApplicationModel holding the resolved container.
     """
     container = Container()
 
-    core_settings = CoreSettings.load()
-    container.register_instance(CoreSettings, core_settings)
+    container.register(CoreSettings, CoreSettings.load)
 
-    configure_container(container)
-
-    model = ApplicationModel(container)
-
-    if on_app_created:
-        # Synchronous by design: it should only read the model, not run async work.
-        on_app_created(model)
-
-    return model
+    return ApplicationModel(container)

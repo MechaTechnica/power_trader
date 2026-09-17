@@ -21,7 +21,7 @@ from __future__ import annotations
 import importlib.metadata
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable
+from typing import Callable, Union, cast
 
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
@@ -63,7 +63,9 @@ def _get_entry_points() -> Union[importlib.metadata.EntryPoints, importlib.metad
 
 
 def _filter_entry_points(
-    entry_points: importlib.metadata.EntryPoints,
+    entry_points: Union[
+        importlib.metadata.EntryPoints, importlib.metadata.SelectableGroups
+    ],
     group: str,
     predicate: EntryPointPredicate,
 ) -> list[importlib.metadata.EntryPoint]:
@@ -71,11 +73,13 @@ def _filter_entry_points(
     if hasattr(entry_points, "select"):
         entries = entry_points.select(group=group)
     else:  # Legacy ``entry_points()`` returns a ``defaultdict`` without ``select``.
-        entries = entry_points.get(group, ())  # type: ignore[attr-defined]
+        entries = cast(importlib.metadata.SelectableGroups, entry_points).get(
+            group, importlib.metadata.EntryPoints()
+        )
     return [entry_point for entry_point in entries if predicate(entry_point.name)]
 
 
-def _load_core() -> Callable[..., ApplicationModel]:
+def _load_core_entry_point() -> Callable[[], ApplicationModel]:
     """Discover power-core's factory from the shared extension-point group."""
     entry_points = _get_entry_points()
     core_matches = _filter_entry_points(
@@ -96,26 +100,27 @@ def _load_core() -> Callable[..., ApplicationModel]:
     return core_matches[0].load()  # type: ignore[no-any-return]
 
 
-def _load_plugin_factories() -> list[type[Plugin]]:
+def _load_plugins() -> set[type[Plugin]]:
     """Load and return every installed plugin class in the shared group.
 
     The ``core`` entry point is the runtime factory rather than a plugin, so it
-    is excluded by name. Results are returned in deterministic (name-sorted)
-    order, and each loaded object must be a :class:`Plugin` subclass.
+    is excluded by name. Each loaded object must be a :class:`Plugin` subclass,
+    and duplicate registrations (the same plugin class under multiple entry
+    points) are returned only once.
     """
     entry_points = _get_entry_points()
     plugin_entries = _filter_entry_points(
         entry_points, PLUGIN_GROUP, lambda name: name != CORE_NAME
     )
 
-    plugins: list[type[Plugin]] = []
+    plugins: set[type[Plugin]] = set()
     for entry_point in sorted(plugin_entries, key=lambda candidate: candidate.name):
         plugin_class = entry_point.load()
         if not isinstance(plugin_class, type) or not issubclass(plugin_class, Plugin):
             raise TypeError(
                 f"Plugin entry point '{entry_point.name}' must expose a Plugin subclass"
             )
-        plugins.append(plugin_class)
+        plugins.add(plugin_class)
     return plugins
 
 
@@ -127,19 +132,20 @@ class ApplicationBase:
     """
 
     def __init__(self) -> None:
-        self._container: Container | None = None
+        self._application_model: ApplicationModel | None = None
 
     @property
-    def container(self) -> Container:
-        if self._container is None:
+    def application_model(self) -> ApplicationModel:
+        application_model = self._application_model
+        if application_model is None:
             raise RuntimeError(
-                "Application has not been built; no container available."
+                "Application has not been built; no application model available."
             )
-        return self._container
-    
-    @container.setter
-    def container(self, container: Container) -> None:
-        self._container = container
+        return application_model
+
+    @property.setter
+    def application_model(self, application_model: ApplicationModel) -> None:
+        self._application_model = application_model
 
     async def on_startup(self) -> None:
         return None
@@ -159,29 +165,23 @@ class ApplicationBootstrapper:
     container back into the application.
     """
 
-    def __init__(self, application: ApplicationBase) -> None:
-        self.application = application
-
-    def _initialize_plugins(self) -> list[Plugin]:
+    @staticmethod
+    def _initialize_plugins() -> list[Plugin]:
         """Instantiate one instance of every installed plugin."""
-        return [plugin_class() for plugin_class in _load_plugin_factories()]
+        return [plugin_class() for plugin_class in _load_plugins()]
 
-    def _create_runtime(self, configure_container: ConfigureContainer, on_app_created: OnAppCreated | None = None) -> ApplicationModel:
-        factory = _load_core()
-        return factory(configure_container, on_app_created)
+    @staticmethod
+    def _create_runtime() -> ApplicationModel:
+        core_entry_point = _load_core_entry_point()
+        return core_entry_point()
 
-    def bootstrap(self) -> ApplicationBase:
-        """Build the runtime and wire plugins into it."""
-
-        def configure_container(container: Container) -> None:
-            for plugin in self._initialize_plugins():
-                plugin.register(container)
-
-        def on_app_created(model: ApplicationModel) -> None:
-            self.application.container = model.container
-
-        self._create_runtime(configure_container, on_app_created)
-        return self.application
+    @staticmethod
+    def bootstrap(application: ApplicationBase) -> ApplicationBase:
+        """Build the runtime and wire plugins into ``application``."""
+        application.application_model = ApplicationBootstrapper._create_runtime()
+        for plugin in ApplicationBootstrapper._initialize_plugins():
+            plugin.register(application.application_model.container)
+        return application
 
 
 class ApplicationBuilder:
@@ -193,7 +193,7 @@ class ApplicationBuilder:
     def build(self) -> ApplicationBase:
         """Build the application: container, framework services, plugins, app."""
         application = self._application_class()
-        return ApplicationBootstrapper(application).bootstrap()
+        return ApplicationBootstrapper.bootstrap(application)
 
 
 __all__ = [
