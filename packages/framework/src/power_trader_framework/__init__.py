@@ -10,8 +10,7 @@ __version__ = "0.1.0"
 
 from power_trader_framework.application import (ApplicationBase,
                                                 ApplicationBuilder,
-                                                ApplicationModel,
-                                                ConfigureContainer)
+                                                ApplicationModel)
 from power_trader_framework.plugins import Plugin
 from power_trader_framework.protocols.container import Container
 from power_trader_framework.settings import CoreSettings, JsonFileSettings

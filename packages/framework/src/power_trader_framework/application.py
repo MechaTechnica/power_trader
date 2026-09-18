@@ -35,25 +35,16 @@ EntryPointPredicate = Callable[[str], bool]
 
 @dataclass
 class ApplicationModel:
-    """The resolved runtime: a thin holder for the generic DI container.
-
-    The concrete runtime (``power-core``) builds this and returns it to the
-    framework, which reads ``container`` back into ``ApplicationBase``.
-    Applications depend on this model, never on ``power-core``.
+    """The model for an application, containing the container and the constructed application.
     """
 
     container: Container
-
-
-ConfigureContainer = Callable[[Container], None]
-
-#: Callback the framework uses to receive the built model and read its
-#: ``container``.
-OnAppCreated = Callable[[ApplicationModel], None]
+    application: ApplicationBase
 
 
 @lru_cache(maxsize=1)
-def _get_entry_points() -> Union[importlib.metadata.EntryPoints, importlib.metadata.SelectableGroups]:
+def _get_entry_points() -> Union[
+    importlib.metadata.EntryPoints, importlib.metadata.SelectableGroups]:
     """Return all installed entry points, cached.
 
     Entry points are fixed for the lifetime of the process after package
@@ -79,7 +70,7 @@ def _filter_entry_points(
     return [entry_point for entry_point in entries if predicate(entry_point.name)]
 
 
-def _load_core_entry_point() -> Callable[[], ApplicationModel]:
+def _load_core_entry_point() -> Callable[[type["ApplicationBase"]], ApplicationModel]:
     """Discover power-core's factory from the shared extension-point group."""
     entry_points = _get_entry_points()
     core_matches = _filter_entry_points(
@@ -143,7 +134,7 @@ class ApplicationBase:
             )
         return application_model
 
-    @property.setter
+    @application_model.setter
     def application_model(self, application_model: ApplicationModel) -> None:
         self._application_model = application_model
 
@@ -171,17 +162,22 @@ class ApplicationBootstrapper:
         return [plugin_class() for plugin_class in _load_plugins()]
 
     @staticmethod
-    def _create_runtime() -> ApplicationModel:
+    def _create_runtime(application_class: type["ApplicationBase"]) -> ApplicationModel:
         core_entry_point = _load_core_entry_point()
-        return core_entry_point()
+        # The core runtime is responsible for creating the concrete
+        # Application instance and wiring the ApplicationModel into it.
+        return core_entry_point(application_class)
 
     @staticmethod
-    def bootstrap(application: ApplicationBase) -> ApplicationBase:
-        """Build the runtime and wire plugins into ``application``."""
-        application.application_model = ApplicationBootstrapper._create_runtime()
+    def bootstrap(application_class: type[ApplicationBase]) -> ApplicationBase:
+        """Build the runtime (in core), initialize plugins and return the created
+        application instance.
+        """
+        application_model = ApplicationBootstrapper._create_runtime(application_class)
+        application_model.application.application_model = application_model
         for plugin in ApplicationBootstrapper._initialize_plugins():
-            plugin.register(application.application_model.container)
-        return application
+            plugin.register(application_model.container)
+        return application_model.application
 
 
 class ApplicationBuilder:
@@ -192,14 +188,11 @@ class ApplicationBuilder:
 
     def build(self) -> ApplicationBase:
         """Build the application: container, framework services, plugins, app."""
-        application = self._application_class()
-        return ApplicationBootstrapper.bootstrap(application)
+        return ApplicationBootstrapper.bootstrap(self._application_class)
 
 
 __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
     "ApplicationModel",
-    "ConfigureContainer",
-    "OnAppCreated",
 ]

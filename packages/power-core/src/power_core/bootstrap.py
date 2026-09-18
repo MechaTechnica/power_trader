@@ -2,24 +2,15 @@
 
 The *runtime* (power-core) owns creation of the concrete ``Container``,
 loading of ``CoreSettings``.
-Applications never construct these themselves; they provide a
-``configure_container`` callback (typed against the framework's ``Container``
-protocol) that registers their own
-settings/adapters/use-cases.
-
-This function is exposed to the framework through the shared ``power_trader.plugins``
-entry point, so applications depend only on ``power_trader_framework`` and
-never import ``power_core`` directly.
 """
 
 from power_core.container import Container
-from power_trader_framework.application import (ApplicationModel,
-                                                ConfigureContainer,
-                                                OnAppCreated)
+from power_trader_framework.application import (ApplicationBase,
+                                                ApplicationModel)
 from power_trader_framework.settings import CoreSettings
 
 
-def create_application() -> ApplicationModel:
+def create_application(application_class: type[ApplicationBase]) -> ApplicationModel:
     """
     Create and configure an application.
 
@@ -27,14 +18,13 @@ def create_application() -> ApplicationModel:
 
     1. Creates the ``Container`` (applications never do this themselves).
     2. Loads ``CoreSettings`` from the environment and registers it.
-    3. Builds an :class:`ApplicationModel` around the container and invokes
-       ``on_app_created`` if provided.
+    3. Builds :class:`ApplicationModel`
 
     Returns:
-        The built ApplicationModel holding the resolved container.
+        The built ApplicationModel
     """
     container = Container()
-
     container.register(CoreSettings, CoreSettings.load)
+    application = application_class()
 
-    return ApplicationModel(container)
+    return ApplicationModel(container=container, application=application)
