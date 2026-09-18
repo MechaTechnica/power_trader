@@ -22,7 +22,7 @@ class PowerDayTraderPlugin(Plugin):
 
     def register(self, container: Container) -> None:
         """Register the application's settings, adapters, and use cases."""
-        app_settings = PowerTraderSettings.load()
+        app_settings: PowerTraderSettings = PowerTraderSettings.load()
         container.register_instance(PowerTraderSettings, app_settings)
         container.register(OutputPresenter, TerminalOutputAdapter)
 

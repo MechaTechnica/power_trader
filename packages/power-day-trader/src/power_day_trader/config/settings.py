@@ -7,8 +7,6 @@ settings that only make sense for *this* application (broker connection
 details, trading parameters, etc.).
 """
 
-from typing import Annotated
-
 from power_trader_framework.settings import JsonFileSettings
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -49,12 +47,8 @@ class PowerTraderSettings(JsonFileSettings):
     CONFIG_FILE_ENV = "POWER_DAY_TRADER_CONFIG_FILE"
     DEFAULT_JSON_FILE = "power-day-trader-settings.json"
 
-    ib: Annotated[
-        InteractiveBrokersSettings, Field(default_factory=InteractiveBrokersSettings)
-    ]
-    trading: Annotated[
-        TradingSettings, Field(default_factory=TradingSettings)
-    ]
+    ib: InteractiveBrokersSettings = Field(default_factory=InteractiveBrokersSettings)
+    trading: TradingSettings = Field(default_factory=TradingSettings)
 
     model_config = SettingsConfigDict(
         env_prefix="POWER_DAY_TRADER_",
