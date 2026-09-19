@@ -1,11 +1,12 @@
 """Monitor stocks use case - core business logic."""
 
 from power_day_trader.core.strategy_registry import StrategyRegistry
-from power_framework.protocols.data import MarketDataProvider
 from power_framework.protocols.output import OutputPresenter
-from power_framework.protocols.strategy import SignalAggregator
-from power_framework.types.market import TickerSymbol, TimeInterval
-from power_framework.types.signals import SignalMetadata
+from power_market.protocols.data import MarketDataProvider
+from power_market.protocols.output import SignalPresenter
+from power_market.protocols.strategy import SignalAggregator
+from power_market.types.market import TickerSymbol, TimeInterval
+from power_market.types.signals import SignalMetadata
 
 
 class MonitorStocksUseCase:
@@ -26,12 +27,14 @@ class MonitorStocksUseCase:
         registry: StrategyRegistry,
         aggregator: SignalAggregator,
         output: OutputPresenter,
+        signal_presenter: SignalPresenter,
     ) -> None:
         """Inject dependencies through constructor (ports)."""
         self._data_provider = data_provider
         self._registry = registry
         self._aggregator = aggregator
         self._output = output
+        self._signal_presenter = signal_presenter
 
     async def execute(
         self,
@@ -70,4 +73,4 @@ class MonitorStocksUseCase:
                 )
 
                 # Present result
-                await self._output.present_signal(bar.symbol, aggregated, metadata)
+                await self._signal_presenter.present_signal(bar.symbol, aggregated, metadata)

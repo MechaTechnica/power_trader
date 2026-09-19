@@ -9,7 +9,7 @@ application settings.
 """
 
 import os
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from pydantic import Field
 from pydantic_settings import (BaseSettings, JsonConfigSettingsSource,
@@ -82,14 +82,6 @@ class JsonFileSettings(BaseSettings):
 
 
 class CoreSettings(JsonFileSettings):
-    """
-    Settings for the Power Trader core runtime.
-
-    Controlled via environment variables prefixed with ``POWER_CORE_``
-    (e.g. ``POWER_CORE_LOG_LEVEL=DEBUG``) and optionally a JSON file
-    (see :class:`JsonFileSettings`).
-    """
-
     CONFIG_FILE_ENV = "POWER_CORE_CONFIG_FILE"
     DEFAULT_JSON_FILE = "core-settings.json"
 
@@ -114,11 +106,6 @@ class CoreSettings(JsonFileSettings):
         env_prefix="POWER_CORE_",
         case_sensitive=False,
     )
-
-    @classmethod
-    def load(cls) -> "CoreSettings":
-        """Load core settings from environment and optional JSON file."""
-        return cls()
 
 
 __all__ = ["CoreSettings", "JsonFileSettings"]

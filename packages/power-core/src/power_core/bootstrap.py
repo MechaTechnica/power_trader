@@ -5,8 +5,7 @@ loading of ``CoreSettings``.
 """
 
 from power_core.container import Container
-from power_framework.application import (ApplicationBase,
-                                                ApplicationModel)
+from power_framework.application import ApplicationBase, ApplicationModel
 from power_framework.settings import CoreSettings
 
 
@@ -24,7 +23,7 @@ def create_application(application_class: type[ApplicationBase]) -> ApplicationM
         The built ApplicationModel
     """
     container = Container()
-    container.register(CoreSettings, CoreSettings.load)
+    container.register(CoreSettings, CoreSettings)
     application = application_class()
 
     return ApplicationModel(container=container, application=application)

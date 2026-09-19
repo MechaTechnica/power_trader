@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from power_framework.plugins import (Plugin, _filter_entry_points,
-                                            _get_entry_points)
+                                     _get_entry_points)
 from power_framework.protocols.container import Container
 
 PLUGIN_GROUP = "power.plugins"
@@ -57,7 +57,7 @@ class ApplicationBootstrapper:
     container back into the application.
     """
 
-    def __load_core_entry_point(self) -> Callable[[type[ApplicationBase]], ApplicationModel]:
+    def _load_core_entry_point(self) -> Callable[[type[ApplicationBase]], ApplicationModel]:
         """Discover power-core's factory from the shared extension-point group."""
         entry_points = _get_entry_points()
         core_matches = _filter_entry_points(entry_points, PLUGIN_GROUP, lambda name: name == CORE_NAME)
@@ -75,7 +75,7 @@ class ApplicationBootstrapper:
 
         return core_matches[0].load()  # type: ignore[no-any-return]
 
-    def __load_plugins(self) -> set[type[Plugin]]:
+    def _load_plugins(self) -> set[type[Plugin]]:
         """Load and return every installed plugin class in the shared group.
 
         The ``core`` entry point is the runtime factory rather than a plugin, so it
@@ -96,12 +96,12 @@ class ApplicationBootstrapper:
             plugins.add(plugin_class)
         return plugins
 
-    def __initialize_plugins(self) -> list[Plugin]:
+    def _initialize_plugins(self) -> list[Plugin]:
         """Instantiate one instance of every installed plugin."""
-        return [plugin_class() for plugin_class in self.__load_plugins()]
+        return [plugin_class() for plugin_class in self._load_plugins()]
 
-    def __load_core(self, application_class: type[ApplicationBase]) -> ApplicationModel:
-        core_entry_point = self.__load_core_entry_point()
+    def _load_core(self, application_class: type[ApplicationBase]) -> ApplicationModel:
+        core_entry_point = self._load_core_entry_point()
         # The core runtime is responsible for creating the concrete
         # Application instance and wiring the ApplicationModel into it.
         return core_entry_point(application_class)
@@ -110,9 +110,9 @@ class ApplicationBootstrapper:
         """Build the runtime (in core), initialize plugins and return the created
         application instance.
         """
-        application_model = self.__load_core(application_class)
+        application_model = self._load_core(application_class)
         application_model.application.application_model = application_model
-        for plugin in self.__initialize_plugins():
+        for plugin in self._initialize_plugins():
             plugin.register(application_model.container)
         return application_model.application
 

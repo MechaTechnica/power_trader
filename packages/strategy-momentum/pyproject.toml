@@ -8,10 +8,12 @@ license = { text = "MIT" }
 
 dependencies = [
     "power-framework",
+    "power-market",
 ]
 
 [tool.uv.sources]
 power-framework = { workspace = true }
+power-market = { workspace = true }
 
 [project.entry-points."power.plugins"]
 "strategy.momentum" = "power_trader_strategy_momentum.plugin:MomentumPlugin"

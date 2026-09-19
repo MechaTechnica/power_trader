@@ -12,9 +12,10 @@ from power_day_trader.core.strategy_registry import StrategyRegistry
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container
-from power_framework.protocols.data import MarketDataProvider
 from power_framework.protocols.output import OutputPresenter
-from power_framework.protocols.strategy import SignalAggregator
+from power_market.protocols.data import MarketDataProvider
+from power_market.protocols.output import SignalPresenter
+from power_market.protocols.strategy import SignalAggregator
 
 
 class PowerDayTraderPlugin(Plugin):
@@ -25,6 +26,7 @@ class PowerDayTraderPlugin(Plugin):
         app_settings: PowerTraderSettings = PowerTraderSettings.load()
         container.register_instance(PowerTraderSettings, app_settings)
         container.register(OutputPresenter, TerminalOutputAdapter)
+        container.register(SignalPresenter, TerminalOutputAdapter)
 
         container.register(
             MarketDataProvider,

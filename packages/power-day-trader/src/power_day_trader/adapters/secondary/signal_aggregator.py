@@ -2,8 +2,8 @@
 
 from datetime import datetime
 
-from power_framework.protocols.strategy import SignalAggregator
-from power_framework.types.signals import SignalType, TradingSignal
+from power_market.protocols.strategy import SignalAggregator
+from power_market.types.signals import SignalType, TradingSignal
 
 
 class WeightedAverageAggregator:

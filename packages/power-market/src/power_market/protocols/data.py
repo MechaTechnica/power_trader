@@ -2,9 +2,9 @@
 
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
-from power_framework.types.market import MarketBar, TickerSymbol, TimeInterval
+from power_market.types.market import MarketBar, TickerSymbol, TimeInterval
 
 
 class MarketDataProvider(Protocol):
@@ -99,7 +99,7 @@ class MarketScanner(Protocol):
         min_price: float | None = None,
         max_price: float | None = None,
         sector: str | None = None,
-        **kwargs: any,
+        **kwargs: Any,
     ) -> list[TickerSymbol]:
         """
         Scan market for stocks matching criteria.

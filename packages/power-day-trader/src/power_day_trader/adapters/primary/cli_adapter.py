@@ -4,7 +4,7 @@ import asyncio
 
 import click
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
-from power_framework.types.market import TickerSymbol, TimeInterval
+from power_market.types.market import TickerSymbol, TimeInterval
 
 
 class CLIAdapter:

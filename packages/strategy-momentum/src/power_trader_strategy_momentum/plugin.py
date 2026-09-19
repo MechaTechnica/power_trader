@@ -7,7 +7,7 @@ is handed by the runtime.
 
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container
-from power_framework.protocols.strategy import Strategy
+from power_market.protocols.strategy import Strategy
 from power_trader_strategy_momentum.strategy import MomentumStrategy
 
 

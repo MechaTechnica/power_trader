@@ -9,6 +9,7 @@ license = { text = "MIT" }
 [tool.uv.workspace]
 members = [
     "packages/framework",
+    "packages/power-market",
     "packages/power-core",
     "packages/power-day-trader",
     "packages/strategy-momentum",
@@ -17,6 +18,7 @@ members = [
 
 [tool.uv.sources]
 power-framework = { workspace = true }
+power-market = { workspace = true }
 power-core = { workspace = true }
 power-day-trader = { workspace = true }
 power-trader-strategy-momentum = { workspace = true }

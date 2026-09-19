@@ -2,10 +2,9 @@
 
 from datetime import datetime
 
-from power_framework.protocols.output import OutputPresenter
-from power_framework.types.market import TickerSymbol
-from power_framework.types.signals import (SignalMetadata, SignalType,
-                                                  TradingSignal)
+from power_market.types.market import TickerSymbol
+from power_market.types.signals import (SignalMetadata, SignalType,
+                                        TradingSignal)
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -15,7 +14,8 @@ class TerminalOutputAdapter:
     """
     Terminal output implementation using rich library.
     
-    Implements OutputPresenter protocol.
+    Implements OutputPresenter (generic messages) and SignalPresenter
+    (signal presentation) protocols.
     """
 
     def __init__(self) -> None:
