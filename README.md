@@ -6,10 +6,11 @@ A Python-based day trading system with ML strategy plugins and Interactive Broke
 
 This is a monorepo containing multiple Python packages:
 
-- **framework**: Core protocols and abstractions (no tech-specific code)
-- **trading-app**: Interactive Brokers implementation
-- **strategy-***: ML strategy plugins (momentum, volume profile, etc.)
-- **cli-tools**: Scaffolding tools for creating apps and strategies
+- **power-framework**: Core protocols and abstractions (no tech-specific code)
+- **power-market**: Trading-domain contracts (market/signal types and protocols)
+- **power-core**: Runtime infrastructure (application lifecycle, DI container, plugin registry)
+- **power-day-trader**: Interactive Brokers application (hexagonal architecture)
+- **power-trader-strategy-***: ML strategy plugins (momentum, GEX)
 
 ## 📋 Requirements
 
@@ -23,14 +24,11 @@ This is a monorepo containing multiple Python packages:
 # Install uv if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Initialize workspace (after implementation)
+# Install all workspace packages
 uv sync
 
 # Run the trading app
-uv run power-trader-app --symbols AAPL MSFT
-
-# Create a new strategy plugin
-uv run power-trader create strategy my-strategy
+uv run power-day-trader monitor --symbols AAPL MSFT
 ```
 
 ## 📦 Package Structure
@@ -38,13 +36,19 @@ uv run power-trader create strategy my-strategy
 ```
 power_trader/
 ├── packages/
-│   ├── framework/           # Core protocols and types
-│   ├── trading-app/         # Main trading application
-│   ├── strategy-*/          # Strategy plugins
-│   └── cli-tools/           # CLI scaffolding tools
+│   ├── framework/           # power-framework → power_framework
+│   ├── power-market/        # power-market → power_market
+│   ├── power-core/          # power-core → power_core
+│   ├── power-day-trader/    # power-day-trader → power_day_trader
+│   ├── strategy-momentum/   # power-trader-strategy-momentum
+│   └── strategy-gex/        # power-trader-strategy-gex
 └── plans/
     └── architecture.md      # Detailed architecture documentation
 ```
+
+Each package uses a three-layer naming convention: a short kebab-case directory
+(e.g. `framework/`), a branded distribution name (e.g. `power-framework`), and a
+snake_case import namespace (e.g. `power_framework`).
 
 ## 🛠️ Development
 
@@ -77,28 +81,22 @@ pytest
 ## 🎯 Key Features
 
 - **Protocol-based architecture** - Clean separation of concerns
-- **Automatic dependency injection** - Using that-depends with type hints
+- **Automatic dependency injection** - Driven by type hints
 - **Plugin system** - ML strategies as independent packages
 - **Strict type checking** - Full mypy strict mode compliance
 - **High performance** - Async I/O with dataclasses for hot paths
-- **Extensible** - Ready for UI integration and custom strategies
+- **Hexagonal architecture** - Ports & adapters for the trading app
 
 ## 🔧 Technology Stack
 
 - **Package Manager**: uv with workspace support
 - **Type Checker**: mypy (strict mode)
 - **Linter/Formatter**: ruff
-- **Dependency Injection**: that-depends
+- **Dependency Injection**: power-core `Container` (type-hint-driven)
 - **Data Validation**: Pydantic (for config), dataclasses (for performance)
 - **Testing**: pytest with pytest-asyncio
 - **Market Data**: ib-insync (Interactive Brokers)
 
-## ⚠️ Status
-
-**This project is currently in the planning/architecture phase.**
-
-See [`plans/architecture.md`](plans/architecture.md) for the complete architectural design that will be implemented.
-
 ## 📝 License
 
-MIT (to be added)
+MIT
