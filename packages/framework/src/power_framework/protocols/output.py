@@ -2,8 +2,8 @@
 
 from typing import Protocol
 
-from power_trader_framework.types.market import TickerSymbol
-from power_trader_framework.types.signals import SignalMetadata, TradingSignal
+from power_framework.types.market import TickerSymbol
+from power_framework.types.signals import SignalMetadata, TradingSignal
 
 
 class OutputPresenter(Protocol):

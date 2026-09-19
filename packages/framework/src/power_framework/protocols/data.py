@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import Protocol
 
-from power_trader_framework.types.market import MarketBar, TickerSymbol, TimeInterval
+from power_framework.types.market import MarketBar, TickerSymbol, TimeInterval
 
 
 class MarketDataProvider(Protocol):

@@ -84,7 +84,7 @@ MIT
 
 Strategies are independently installed packages discovered through the standard
 Python entry-point group `power_trader.strategies`. An entry point must target a
-subclass of [`Plugin`](../framework/src/power_trader_framework/plugins.py:13).
+subclass of [`Plugin`](../framework/src/power_framework/plugins.py:13).
 Set the plugin's stable `name` class attribute to the same value used by its
 entry point. The runtime validates this match before any strategy is registered.
 

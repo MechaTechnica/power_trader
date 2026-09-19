@@ -2,10 +2,10 @@
 
 from datetime import datetime
 
-from power_trader_framework.protocols.strategy import Strategy
-from power_trader_framework.types.common import SignalType
-from power_trader_framework.types.market import MarketBar
-from power_trader_framework.types.signals import TradingSignal
+from power_framework.protocols.strategy import Strategy
+from power_framework.types.common import SignalType
+from power_framework.types.market import MarketBar
+from power_framework.types.signals import TradingSignal
 
 
 class MomentumStrategy:

@@ -2,10 +2,10 @@
 
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_day_trader.application import PowerDayTraderApplication
-from power_trader_framework.application import ApplicationBuilder
-from power_trader_framework.protocols.container import Container
-from power_trader_framework.protocols.data import MarketDataProvider
-from power_trader_framework.protocols.strategy import SignalAggregator
+from power_framework.application import ApplicationBuilder
+from power_framework.protocols.container import Container
+from power_framework.protocols.data import MarketDataProvider
+from power_framework.protocols.strategy import SignalAggregator
 
 
 def _build_container() -> Container:

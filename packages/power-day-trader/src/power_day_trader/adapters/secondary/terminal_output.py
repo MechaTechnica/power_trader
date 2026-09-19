@@ -2,9 +2,9 @@
 
 from datetime import datetime
 
-from power_trader_framework.protocols.output import OutputPresenter
-from power_trader_framework.types.market import TickerSymbol
-from power_trader_framework.types.signals import (SignalMetadata, SignalType,
+from power_framework.protocols.output import OutputPresenter
+from power_framework.types.market import TickerSymbol
+from power_framework.types.signals import (SignalMetadata, SignalType,
                                                   TradingSignal)
 from rich.console import Console
 from rich.panel import Panel

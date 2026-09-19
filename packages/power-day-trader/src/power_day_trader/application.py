@@ -2,9 +2,9 @@
 
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_day_trader.core.strategy_registry import StrategyRegistry
-from power_trader_framework.application import ApplicationBase
-from power_trader_framework.protocols.data import MarketDataProvider
-from power_trader_framework.protocols.output import OutputPresenter
+from power_framework.application import ApplicationBase
+from power_framework.protocols.data import MarketDataProvider
+from power_framework.protocols.output import OutputPresenter
 
 
 class PowerDayTraderApplication(ApplicationBase):

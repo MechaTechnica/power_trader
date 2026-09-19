@@ -4,9 +4,9 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from power_trader_framework.types.market import (MarketBar, TickerSymbol,
+from power_framework.types.market import (MarketBar, TickerSymbol,
                                                  TimeInterval)
-from power_trader_framework.types.signals import (SignalMetadata, SignalType,
+from power_framework.types.signals import (SignalMetadata, SignalType,
                                                   TradingSignal)
 
 

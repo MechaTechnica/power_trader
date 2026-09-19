@@ -35,7 +35,7 @@ power_trader/
 │   │   ├── pyproject.toml
 │   │   ├── README.md
 │   │   ├── src/
-│   │   │   └── power_trader_framework/
+│   │   │   └── power_framework/
 │   │   │       ├── __init__.py
 │   │   │       ├── protocols/     # All protocol definitions
 │   │   │       │   ├── __init__.py
@@ -141,12 +141,12 @@ power_trader/
 
 ### 1. Protocols
 
-#### Market Data Protocol ([`protocols/data.py`](packages/framework/src/power_trader_framework/protocols/data.py))
+#### Market Data Protocol ([`protocols/data.py`](packages/framework/src/power_framework/protocols/data.py))
 
 ```python
 from typing import Protocol, AsyncIterator
 from datetime import datetime
-from power_trader_framework.types.market import MarketBar, TickerSymbol, TimeInterval
+from power_framework.types.market import MarketBar, TickerSymbol, TimeInterval
 
 class IMarketDataProvider(Protocol):
     """Protocol for market data providers (Interactive Brokers, etc.)"""
@@ -192,12 +192,12 @@ class IMarketScanner(Protocol):
         ...
 ```
 
-#### Strategy Protocol ([`protocols/strategy.py`](packages/framework/src/power_trader_framework/protocols/strategy.py))
+#### Strategy Protocol ([`protocols/strategy.py`](packages/framework/src/power_framework/protocols/strategy.py))
 
 ```python
 from typing import Protocol
-from power_trader_framework.types.market import MarketBar
-from power_trader_framework.types.signals import TradingSignal, SignalMetadata
+from power_framework.types.market import MarketBar
+from power_framework.types.signals import TradingSignal, SignalMetadata
 
 class IStrategy(Protocol):
     """Protocol for ML trading strategies (plugins)"""
@@ -241,12 +241,12 @@ class ISignalAggregator(Protocol):
         ...
 ```
 
-#### Output Protocol ([`protocols/output.py`](packages/framework/src/power_trader_framework/protocols/output.py))
+#### Output Protocol ([`protocols/output.py`](packages/framework/src/power_framework/protocols/output.py))
 
 ```python
 from typing import Protocol
-from power_trader_framework.types.signals import TradingSignal, SignalMetadata
-from power_trader_framework.types.market import TickerSymbol
+from power_framework.types.signals import TradingSignal, SignalMetadata
+from power_framework.types.market import TickerSymbol
 
 class IOutputPresenter(Protocol):
     """Protocol for presenting trading signals (terminal, UI, etc.)"""
@@ -269,7 +269,7 @@ class IOutputPresenter(Protocol):
         ...
 ```
 
-#### Lifecycle Protocol ([`protocols/lifecycle.py`](packages/framework/src/power_trader_framework/protocols/lifecycle.py))
+#### Lifecycle Protocol ([`protocols/lifecycle.py`](packages/framework/src/power_framework/protocols/lifecycle.py))
 
 ```python
 from typing import Protocol
@@ -294,7 +294,7 @@ class IHealthCheck(Protocol):
         ...
 ```
 
-#### Configuration Protocol ([`protocols/config.py`](packages/framework/src/power_trader_framework/protocols/config.py))
+#### Configuration Protocol ([`protocols/config.py`](packages/framework/src/power_framework/protocols/config.py))
 
 ```python
 from typing import Protocol, Any
@@ -313,7 +313,7 @@ class IConfigProvider(Protocol):
 
 ### 2. Types
 
-#### Market Types ([`types/market.py`](packages/framework/src/power_trader_framework/types/market.py))
+#### Market Types ([`types/market.py`](packages/framework/src/power_framework/types/market.py))
 
 ```python
 from dataclasses import dataclass
@@ -361,7 +361,7 @@ class TimeInterval:
         return cls(seconds=seconds)
 ```
 
-#### Signal Types ([`types/signals.py`](packages/framework/src/power_trader_framework/types/signals.py))
+#### Signal Types ([`types/signals.py`](packages/framework/src/power_framework/types/signals.py))
 
 ```python
 from dataclasses import dataclass
@@ -400,7 +400,7 @@ class SignalMetadata:
 
 ### 3. Dependency Injection System
 
-#### DI Container ([`core/di_container.py`](packages/framework/src/power_trader_framework/core/di_container.py))
+#### DI Container ([`core/di_container.py`](packages/framework/src/power_framework/core/di_container.py))
 
 ```python
 from that_depends import BaseContainer, providers
@@ -456,12 +456,12 @@ class PluginRegistry:
         ...
 ```
 
-### 4. Application Bootstrap ([`core/application.py`](packages/framework/src/power_trader_framework/core/application.py))
+### 4. Application Bootstrap ([`core/application.py`](packages/framework/src/power_framework/core/application.py))
 
 ```python
 from typing import Callable, Awaitable
-from power_trader_framework.core.di_container import DIContainer
-from power_trader_framework.protocols.lifecycle import IApplicationLifecycle
+from power_framework.core.di_container import DIContainer
+from power_framework.protocols.lifecycle import IApplicationLifecycle
 
 class Application:
     """
@@ -561,8 +561,8 @@ sequenceDiagram
 
 ```python
 from ib_insync import IB, Stock, util
-from power_trader_framework.protocols.data import IMarketDataProvider
-from power_trader_framework.types.market import MarketBar, TickerSymbol, TimeInterval
+from power_framework.protocols.data import IMarketDataProvider
+from power_framework.types.market import MarketBar, TickerSymbol, TimeInterval
 
 class InteractiveBrokersAdapter:
     """
@@ -628,9 +628,9 @@ The framework's protocol-based design supports all architectural styles!
 #### Trading Pipeline ([`orchestration/trading_pipeline.py`](packages/trading-app/src/power_trader_app/orchestration/trading_pipeline.py))
 
 ```python
-from power_trader_framework.protocols.data import IMarketDataProvider
-from power_trader_framework.protocols.strategy import IStrategy, ISignalAggregator
-from power_trader_framework.protocols.output import IOutputPresenter
+from power_framework.protocols.data import IMarketDataProvider
+from power_framework.protocols.strategy import IStrategy, ISignalAggregator
+from power_framework.protocols.output import IOutputPresenter
 
 class TradingPipeline:
     """
@@ -695,7 +695,7 @@ class Settings(BaseSettings):
 ### Strategy Plugin Pattern
 
 Each strategy is a separate package that:
-1. Implements [`IStrategy`](packages/framework/src/power_trader_framework/protocols/strategy.py) protocol
+1. Implements [`IStrategy`](packages/framework/src/power_framework/protocols/strategy.py) protocol
 2. Registers via entry points in pyproject.toml
 3. Automatically discovered and loaded by the framework
 
@@ -704,9 +704,9 @@ Each strategy is a separate package that:
 ```python
 # packages/strategy-momentum/src/power_trader_strategy_momentum/strategy.py
 
-from power_trader_framework.protocols.strategy import IStrategy
-from power_trader_framework.types.market import MarketBar
-from power_trader_framework.types.signals import TradingSignal, SignalType
+from power_framework.protocols.strategy import IStrategy
+from power_framework.types.market import MarketBar
+from power_framework.types.signals import TradingSignal, SignalType
 
 class MomentumStrategy:
     """

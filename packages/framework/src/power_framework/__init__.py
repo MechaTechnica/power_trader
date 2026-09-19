@@ -8,15 +8,15 @@ implementations live in ``power-core``.
 
 __version__ = "0.1.0"
 
-from power_trader_framework.application import (ApplicationBase,
+from power_framework.application import (ApplicationBase,
                                                 ApplicationBuilder,
                                                 ApplicationModel)
-from power_trader_framework.plugins import Plugin
-from power_trader_framework.protocols.container import Container
-from power_trader_framework.settings import CoreSettings, JsonFileSettings
-from power_trader_framework.types.market import (MarketBar, TickerSymbol,
+from power_framework.plugins import Plugin
+from power_framework.protocols.container import Container
+from power_framework.settings import CoreSettings, JsonFileSettings
+from power_framework.types.market import (MarketBar, TickerSymbol,
                                                  TimeInterval)
-from power_trader_framework.types.signals import (SignalMetadata, SignalType,
+from power_framework.types.signals import (SignalMetadata, SignalType,
                                                   TradingSignal)
 
 __all__ = [

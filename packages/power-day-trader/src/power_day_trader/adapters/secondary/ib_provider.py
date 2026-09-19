@@ -5,8 +5,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from ib_insync import IB, Stock, util
-from power_trader_framework.protocols.data import MarketDataProvider
-from power_trader_framework.types.market import MarketBar, TickerSymbol, TimeInterval
+from power_framework.protocols.data import MarketDataProvider
+from power_framework.types.market import MarketBar, TickerSymbol, TimeInterval
 
 
 class InteractiveBrokersAdapter:

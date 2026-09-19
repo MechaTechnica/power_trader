@@ -2,8 +2,8 @@
 
 from typing import Protocol, TypeVar
 
-from power_trader_framework.types.market import MarketBar
-from power_trader_framework.types.signals import TradingSignal
+from power_framework.types.market import MarketBar
+from power_framework.types.signals import TradingSignal
 
 #: Discriminator type parameter. Each strategy registers itself under a
 #: distinct ``Strategy[T]`` specialization (``T`` is typically its own

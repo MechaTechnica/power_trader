@@ -4,8 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from power_trader_framework.types.common import SignalType
-from power_trader_framework.types.market import MarketBar, TickerSymbol
+from power_framework.types.common import SignalType
+from power_framework.types.market import MarketBar, TickerSymbol
 from power_trader_strategy_gex.gex_calculator import GEXCalculator
 from power_trader_strategy_gex.strategy import GEXStrategy
 

@@ -1,13 +1,13 @@
 """Application-specific settings using Pydantic.
 
 Power Day Trader owns these settings; they are distinct from
-``power_trader_framework.settings.CoreSettings``, which holds generic
+``power_framework.settings.CoreSettings``, which holds generic
 runtime concerns shared by every Power Trader application. This module holds
 settings that only make sense for *this* application (broker connection
 details, trading parameters, etc.).
 """
 
-from power_trader_framework.settings import JsonFileSettings
+from power_framework.settings import JsonFileSettings
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

@@ -36,39 +36,39 @@ uv add power-framework
 
 Immutable, type-safe data structures:
 
-- **[`TickerSymbol`](src/power_trader_framework/types/market.py)** - Stock symbol representation
-- **[`MarketBar`](src/power_trader_framework/types/market.py)** - OHLCV bar data (frozen dataclass with slots)
-- **[`TimeInterval`](src/power_trader_framework/types/market.py)** - Time interval configuration
-- **[`TradingSignal`](src/power_trader_framework/types/signals.py)** - Strategy signal output
-- **[`SignalMetadata`](src/power_trader_framework/types/signals.py)** - Additional signal information
-- **[`SignalType`](src/power_trader_framework/types/common.py)** - Signal enum (BUY/SELL/HOLD)
+- **[`TickerSymbol`](src/power_framework/types/market.py)** - Stock symbol representation
+- **[`MarketBar`](src/power_framework/types/market.py)** - OHLCV bar data (frozen dataclass with slots)
+- **[`TimeInterval`](src/power_framework/types/market.py)** - Time interval configuration
+- **[`TradingSignal`](src/power_framework/types/signals.py)** - Strategy signal output
+- **[`SignalMetadata`](src/power_framework/types/signals.py)** - Additional signal information
+- **[`SignalType`](src/power_framework/types/common.py)** - Signal enum (BUY/SELL/HOLD)
 
 ### Protocols
 
 Interface definitions that applications implement:
 
 #### Data Protocols
-- **[`IMarketDataProvider`](src/power_trader_framework/protocols/data.py)** - Market data source (IB, Alpaca, etc.)
-- **[`IMarketScanner`](src/power_trader_framework/protocols/data.py)** - Stock scanner/screener
+- **[`IMarketDataProvider`](src/power_framework/protocols/data.py)** - Market data source (IB, Alpaca, etc.)
+- **[`IMarketScanner`](src/power_framework/protocols/data.py)** - Stock scanner/screener
 
 #### Strategy Protocols
-- **[`IStrategy`](src/power_trader_framework/protocols/strategy.py)** - ML trading strategy plugin
-- **[`ISignalAggregator`](src/power_trader_framework/protocols/strategy.py)** - Multi-strategy signal combination
+- **[`IStrategy`](src/power_framework/protocols/strategy.py)** - ML trading strategy plugin
+- **[`ISignalAggregator`](src/power_framework/protocols/strategy.py)** - Multi-strategy signal combination
 
 #### Output Protocols
-- **[`IOutputPresenter`](src/power_trader_framework/protocols/output.py)** - Result presentation (terminal, web, API)
+- **[`IOutputPresenter`](src/power_framework/protocols/output.py)** - Result presentation (terminal, web, API)
 
 #### System Protocols
-- **[`IConfigProvider`](src/power_trader_framework/protocols/config.py)** - Configuration management
-- **[`IApplicationLifecycle`](src/power_trader_framework/protocols/lifecycle.py)** - Startup/shutdown hooks
-- **[`IHealthCheck`](src/power_trader_framework/protocols/lifecycle.py)** - Health monitoring
+- **[`IConfigProvider`](src/power_framework/protocols/config.py)** - Configuration management
+- **[`IApplicationLifecycle`](src/power_framework/protocols/lifecycle.py)** - Startup/shutdown hooks
+- **[`IHealthCheck`](src/power_framework/protocols/lifecycle.py)** - Health monitoring
 
 ## Usage Example
 
 ### Using Types
 
 ```python
-from power_trader_framework import MarketBar, TickerSymbol, TimeInterval
+from power_framework import MarketBar, TickerSymbol, TimeInterval
 from decimal import Decimal
 from datetime import datetime
 
@@ -90,8 +90,8 @@ bar = MarketBar(
 ### Implementing Protocols
 
 ```python
-from power_trader_framework.protocols import IMarketDataProvider
-from power_trader_framework.types import MarketBar, TickerSymbol, TimeInterval
+from power_framework.protocols import IMarketDataProvider
+from power_framework.types import MarketBar, TickerSymbol, TimeInterval
 from collections.abc import AsyncIterator
 
 class MyDataProvider:
@@ -129,8 +129,8 @@ class MyDataProvider:
 ### Implementing Strategy Plugins
 
 ```python
-from power_trader_framework.protocols import IStrategy
-from power_trader_framework.types import TradingSignal, SignalType, MarketBar
+from power_framework.protocols import IStrategy
+from power_framework.types import TradingSignal, SignalType, MarketBar
 from datetime import datetime
 
 class MomentumStrategy:

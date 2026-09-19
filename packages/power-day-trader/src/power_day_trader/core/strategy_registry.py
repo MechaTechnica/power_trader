@@ -1,6 +1,6 @@
 """Registry aggregating all loaded trading strategies."""
 
-from power_trader_framework.protocols.strategy import Strategy
+from power_framework.protocols.strategy import Strategy
 
 
 class StrategyRegistry:

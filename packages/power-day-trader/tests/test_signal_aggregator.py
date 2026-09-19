@@ -4,8 +4,8 @@ from datetime import datetime
 
 import pytest
 from power_day_trader.adapters.secondary.signal_aggregator import WeightedAverageAggregator
-from power_trader_framework.types.common import SignalType
-from power_trader_framework.types.signals import TradingSignal
+from power_framework.types.common import SignalType
+from power_framework.types.signals import TradingSignal
 
 
 class TestWeightedAverageAggregator:

@@ -51,7 +51,7 @@ Create the following structure:
 framework/
 ├── pyproject.toml
 ├── README.md
-├── src/power_trader_framework/
+├── src/power_framework/
 │   ├── __init__.py
 │   ├── protocols/
 │   ├── core/
@@ -63,9 +63,9 @@ framework/
 ### Step 2: Implement Types
 
 **Priority order:**
-1. [`types/common.py`](../packages/framework/src/power_trader_framework/types/common.py) - Base enums and types
-2. [`types/market.py`](../packages/framework/src/power_trader_framework/types/market.py) - Market data types
-3. [`types/signals.py`](../packages/framework/src/power_trader_framework/types/signals.py) - Signal types
+1. [`types/common.py`](../packages/framework/src/power_framework/types/common.py) - Base enums and types
+2. [`types/market.py`](../packages/framework/src/power_framework/types/market.py) - Market data types
+3. [`types/signals.py`](../packages/framework/src/power_framework/types/signals.py) - Signal types
 
 **Key considerations:**
 - Use `@dataclass(frozen=True, slots=True)` for immutable types
@@ -75,11 +75,11 @@ framework/
 ### Step 3: Implement Protocols
 
 **Priority order:**
-1. [`protocols/config.py`](../packages/framework/src/power_trader_framework/protocols/config.py)
-2. [`protocols/lifecycle.py`](../packages/framework/src/power_trader_framework/protocols/lifecycle.py)
-3. [`protocols/data.py`](../packages/framework/src/power_trader_framework/protocols/data.py)
-4. [`protocols/strategy.py`](../packages/framework/src/power_trader_framework/protocols/strategy.py)
-5. [`protocols/output.py`](../packages/framework/src/power_trader_framework/protocols/output.py)
+1. [`protocols/config.py`](../packages/framework/src/power_framework/protocols/config.py)
+2. [`protocols/lifecycle.py`](../packages/framework/src/power_framework/protocols/lifecycle.py)
+3. [`protocols/data.py`](../packages/framework/src/power_framework/protocols/data.py)
+4. [`protocols/strategy.py`](../packages/framework/src/power_framework/protocols/strategy.py)
+5. [`protocols/output.py`](../packages/framework/src/power_framework/protocols/output.py)
 
 **Key considerations:**
 - Use `Protocol` with runtime checkable where needed
@@ -89,10 +89,10 @@ framework/
 ### Step 4: Implement Core Components
 
 **Priority order:**
-1. [`core/exceptions.py`](../packages/framework/src/power_trader_framework/core/exceptions.py) - Custom exceptions
-2. [`core/di_container.py`](../packages/framework/src/power_trader_framework/core/di_container.py) - DI setup
-3. [`core/plugin_loader.py`](../packages/framework/src/power_trader_framework/core/plugin_loader.py) - Plugin discovery
-4. [`core/application.py`](../packages/framework/src/power_trader_framework/core/application.py) - App bootstrap
+1. [`core/exceptions.py`](../packages/framework/src/power_framework/core/exceptions.py) - Custom exceptions
+2. [`core/di_container.py`](../packages/framework/src/power_framework/core/di_container.py) - DI setup
+3. [`core/plugin_loader.py`](../packages/framework/src/power_framework/core/plugin_loader.py) - Plugin discovery
+4. [`core/application.py`](../packages/framework/src/power_framework/core/application.py) - App bootstrap
 
 ### Step 5: Write Framework Tests
 

@@ -13,7 +13,7 @@ from collections.abc import Callable
 from functools import lru_cache
 from typing import ClassVar, cast
 
-from power_trader_framework.protocols.container import Container
+from power_framework.protocols.container import Container
 
 #: Predicate applied to an entry point's name during discovery.
 EntryPointPredicate = Callable[[str], bool]

@@ -1,7 +1,7 @@
 """Main entry point for Power Day Trader."""
 
 from power_day_trader.application import PowerDayTraderApplication
-from power_trader_framework.application import ApplicationBuilder
+from power_framework.application import ApplicationBuilder
 
 
 def cli() -> None:

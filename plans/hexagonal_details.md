@@ -148,9 +148,9 @@ graph TB
 ```python
 # packages/trading-app/src/power_trader_app/core/use_cases/monitor_stocks.py
 
-from power_trader_framework.protocols.data import IMarketDataProvider
-from power_trader_framework.protocols.strategy import IStrategy, ISignalAggregator
-from power_trader_framework.protocols.output import IOutputPresenter
+from power_framework.protocols.data import IMarketDataProvider
+from power_framework.protocols.strategy import IStrategy, ISignalAggregator
+from power_framework.protocols.output import IOutputPresenter
 
 class MonitorStocksUseCase:
     """
@@ -223,7 +223,7 @@ class MonitorStocksUseCase:
 import asyncio
 import click
 from power_trader_app.core.use_cases.monitor_stocks import MonitorStocksUseCase
-from power_trader_framework.types.market import TickerSymbol, TimeInterval
+from power_framework.types.market import TickerSymbol, TimeInterval
 
 @click.group()
 def cli():
@@ -268,8 +268,8 @@ def scan(min_volume: int | None):
 # packages/trading-app/src/power_trader_app/adapters/secondary/ib_provider.py
 
 from ib_insync import IB, Stock
-from power_trader_framework.protocols.data import IMarketDataProvider
-from power_trader_framework.types.market import MarketBar, TickerSymbol, TimeInterval
+from power_framework.protocols.data import IMarketDataProvider
+from power_framework.types.market import MarketBar, TickerSymbol, TimeInterval
 
 class InteractiveBrokersAdapter:
     """

@@ -1,11 +1,11 @@
 """Monitor stocks use case - core business logic."""
 
 from power_day_trader.core.strategy_registry import StrategyRegistry
-from power_trader_framework.protocols.data import MarketDataProvider
-from power_trader_framework.protocols.output import OutputPresenter
-from power_trader_framework.protocols.strategy import SignalAggregator
-from power_trader_framework.types.market import TickerSymbol, TimeInterval
-from power_trader_framework.types.signals import SignalMetadata
+from power_framework.protocols.data import MarketDataProvider
+from power_framework.protocols.output import OutputPresenter
+from power_framework.protocols.strategy import SignalAggregator
+from power_framework.types.market import TickerSymbol, TimeInterval
+from power_framework.types.signals import SignalMetadata
 
 
 class MonitorStocksUseCase:

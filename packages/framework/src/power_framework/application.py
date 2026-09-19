@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from power_trader_framework.plugins import (Plugin, _filter_entry_points,
+from power_framework.plugins import (Plugin, _filter_entry_points,
                                             _get_entry_points)
-from power_trader_framework.protocols.container import Container
+from power_framework.protocols.container import Container
 
 PLUGIN_GROUP = "power.plugins"
 CORE_NAME = "power-core"

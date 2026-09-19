@@ -29,7 +29,7 @@ ignore = [
 "tests/*" = ["ARG", "PLR2004"]
 
 [lint.isort]
-known-first-party = ["power_trader_framework", "power_trader_app"]
+known-first-party = ["power_framework", "power_trader_app"]
 
 [format]
 quote-style = "double"

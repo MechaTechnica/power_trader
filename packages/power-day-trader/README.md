@@ -103,8 +103,8 @@ power-day-trader monitor -s TSLA -i 300
 Create a separate package implementing `IStrategy` protocol:
 
 ```python
-from power_trader_framework.protocols.strategy import IStrategy
-from power_trader_framework.types import TradingSignal, SignalType, MarketBar
+from power_framework.protocols.strategy import IStrategy
+from power_framework.types import TradingSignal, SignalType, MarketBar
 
 class MyStrategy:
     @property

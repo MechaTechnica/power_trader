@@ -1,11 +1,11 @@
 """Protocol definitions for the Power Trader framework."""
 
-from power_trader_framework.protocols.config import ConfigProvider
-from power_trader_framework.protocols.container import Container
-from power_trader_framework.protocols.data import MarketDataProvider, MarketScanner
-from power_trader_framework.protocols.lifecycle import ApplicationLifecycle, HealthCheck
-from power_trader_framework.protocols.output import OutputPresenter
-from power_trader_framework.protocols.strategy import SignalAggregator, Strategy
+from power_framework.protocols.config import ConfigProvider
+from power_framework.protocols.container import Container
+from power_framework.protocols.data import MarketDataProvider, MarketScanner
+from power_framework.protocols.lifecycle import ApplicationLifecycle, HealthCheck
+from power_framework.protocols.output import OutputPresenter
+from power_framework.protocols.strategy import SignalAggregator, Strategy
 
 __all__ = [
                                                    "ApplicationLifecycle",

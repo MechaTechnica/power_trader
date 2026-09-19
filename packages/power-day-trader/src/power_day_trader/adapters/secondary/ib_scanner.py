@@ -1,8 +1,8 @@
 """Interactive Brokers market scanner adapter."""
 
 from ib_insync import IB, ScannerSubscription
-from power_trader_framework.protocols.data import MarketScanner
-from power_trader_framework.types.market import TickerSymbol
+from power_framework.protocols.data import MarketScanner
+from power_framework.types.market import TickerSymbol
 
 
 class InteractiveBrokersScannerAdapter:

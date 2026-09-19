@@ -3,10 +3,10 @@
 from datetime import datetime
 from decimal import Decimal
 
-from power_trader_framework.protocols.strategy import Strategy
-from power_trader_framework.types.common import SignalType
-from power_trader_framework.types.market import MarketBar
-from power_trader_framework.types.signals import TradingSignal
+from power_framework.protocols.strategy import Strategy
+from power_framework.types.common import SignalType
+from power_framework.types.market import MarketBar
+from power_framework.types.signals import TradingSignal
 from power_trader_strategy_gex.gex_calculator import (GEXCalculator, GEXLevel,
                                                       OptionData)
 

@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass
 
-from power_trader_framework.application import (CORE_NAME, PLUGIN_GROUP,
+from power_framework.application import (CORE_NAME, PLUGIN_GROUP,
                                                 _load_core_entry_point,
                                                 _load_plugins)
-from power_trader_framework.plugins import Plugin
+from power_framework.plugins import Plugin
 
 
 class FirstApplicationPlugin(Plugin):

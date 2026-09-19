@@ -5,9 +5,9 @@ loading of ``CoreSettings``.
 """
 
 from power_core.container import Container
-from power_trader_framework.application import (ApplicationBase,
+from power_framework.application import (ApplicationBase,
                                                 ApplicationModel)
-from power_trader_framework.settings import CoreSettings
+from power_framework.settings import CoreSettings
 
 
 def create_application(application_class: type[ApplicationBase]) -> ApplicationModel:
