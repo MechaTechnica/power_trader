@@ -3,8 +3,7 @@
 from datetime import datetime
 
 from power_market.types.market import TickerSymbol
-from power_market.types.signals import (SignalMetadata, SignalType,
-                                        TradingSignal)
+from power_market.types.signals import Signal, SignalIntent, SignalMetadata
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -25,15 +24,15 @@ class TerminalOutputAdapter:
     async def present_signal(
         self,
         symbol: TickerSymbol,
-        signal: TradingSignal,
+        signal: Signal,
         metadata: SignalMetadata,
     ) -> None:
         """Present a trading signal in formatted table."""
-        # Choose color based on signal type
-        if signal.signal_type == SignalType.BUY:
+        # Choose color based on signal intent
+        if signal.intent == SignalIntent.BUY:
             color = "green"
             emoji = "📈"
-        elif signal.signal_type == SignalType.SELL:
+        elif signal.intent == SignalIntent.SELL:
             color = "red"
             emoji = "📉"
         else:
@@ -41,14 +40,14 @@ class TerminalOutputAdapter:
             emoji = "➡️"
         
         # Create table
-        table = Table(title=f"{emoji} {symbol} - {signal.signal_type.value.upper()}")
+        table = Table(title=f"{emoji} {symbol} - {signal.intent.value.upper()}")
         
         table.add_column("Property", style="cyan")
         table.add_column("Value", style=color)
         
         table.add_row("Confidence", f"{signal.confidence:.1%}")
-        table.add_row("Strategy", signal.strategy_name)
-        table.add_row("Time", signal.timestamp.strftime("%H:%M:%S"))
+        table.add_row("Strategy", signal.source.strategy)
+        table.add_row("Time", signal.generated_at.strftime("%H:%M:%S"))
         
         # Add metadata if available
         for key, value in signal.metadata.items():

@@ -3,9 +3,8 @@
 from datetime import datetime
 from decimal import Decimal
 
-import pytest
-from power_market.types.market import MarketBar, TickerSymbol
-from power_market.types.signals import SignalType
+from power_market.types.market import MarketBar, MarketContext, TickerSymbol
+from power_market.types.signals import SignalIntent
 from power_trader_strategy_momentum.strategy import MomentumStrategy
 
 
@@ -21,18 +20,18 @@ class TestMomentumStrategy:
     async def test_insufficient_data_returns_hold(self) -> None:
         """Test that insufficient data returns HOLD signal."""
         strategy = MomentumStrategy()
-        
+
         # Single bar
         bars = [create_test_bar(100.0)]
-        
-        signal = await strategy.analyze(bars)
-        assert signal.signal_type == SignalType.HOLD
+
+        signal = await strategy.analyze(create_context(bars))
+        assert signal.intent == SignalIntent.HOLD
         assert "reason" in signal.metadata
 
     async def test_strong_upward_momentum_returns_buy(self) -> None:
         """Test that strong upward momentum returns BUY."""
         strategy = MomentumStrategy(lookback_periods=5)
-        
+
         # Create bars with strong upward trend
         bars = [
             create_test_bar(100.0),
@@ -42,16 +41,16 @@ class TestMomentumStrategy:
             create_test_bar(104.0),
             create_test_bar(105.0),  # 5% gain
         ]
-        
-        signal = await strategy.analyze(bars)
-        assert signal.signal_type == SignalType.BUY
+
+        signal = await strategy.analyze(create_context(bars))
+        assert signal.intent == SignalIntent.BUY
         assert signal.confidence > 0.5
         assert "momentum_pct" in signal.metadata
 
     async def test_strong_downward_momentum_returns_sell(self) -> None:
         """Test that strong downward momentum returns SELL."""
         strategy = MomentumStrategy(lookback_periods=5)
-        
+
         # Create bars with strong downward trend
         bars = [
             create_test_bar(100.0),
@@ -61,15 +60,15 @@ class TestMomentumStrategy:
             create_test_bar(96.0),
             create_test_bar(95.0),  # 5% loss
         ]
-        
-        signal = await strategy.analyze(bars)
-        assert signal.signal_type == SignalType.SELL
+
+        signal = await strategy.analyze(create_context(bars))
+        assert signal.intent == SignalIntent.SELL
         assert signal.confidence > 0.5
 
     async def test_weak_momentum_returns_hold(self) -> None:
         """Test that weak momentum returns HOLD."""
         strategy = MomentumStrategy()
-        
+
         # Create bars with minimal change
         bars = [
             create_test_bar(100.0),
@@ -77,14 +76,14 @@ class TestMomentumStrategy:
             create_test_bar(99.5),
             create_test_bar(100.2),
         ]
-        
-        signal = await strategy.analyze(bars)
-        assert signal.signal_type == SignalType.HOLD
+
+        signal = await strategy.analyze(create_context(bars))
+        assert signal.intent == SignalIntent.HOLD
 
     async def test_start_and_stop(self) -> None:
         """Test lifecycle methods."""
         strategy = MomentumStrategy()
-        
+
         # Should not raise
         await strategy.start()
         await strategy.stop()
@@ -101,3 +100,10 @@ def create_test_bar(price: float) -> MarketBar:
         close=Decimal(str(price)),
         volume=1000000,
     )
+
+
+def create_context(bars: list[MarketBar]) -> MarketContext:
+    """Helper to wrap bars in a MarketContext."""
+    symbol = bars[0].symbol if bars else TickerSymbol(symbol="TEST")
+    timestamp = bars[-1].timestamp if bars else datetime.now()
+    return MarketContext(symbol=symbol, bars=bars, timestamp=timestamp)

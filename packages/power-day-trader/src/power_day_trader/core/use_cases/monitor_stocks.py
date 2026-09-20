@@ -5,7 +5,7 @@ from power_framework.protocols.output import OutputPresenter
 from power_market.protocols.data import MarketDataProvider
 from power_market.protocols.output import SignalPresenter
 from power_market.protocols.strategy import SignalAggregator
-from power_market.types.market import TickerSymbol, TimeInterval
+from power_market.types.market import MarketContext, TickerSymbol, TimeInterval
 from power_market.types.signals import SignalMetadata
 
 
@@ -52,11 +52,18 @@ class MonitorStocksUseCase:
 
         # Stream market data and analyze
         async for bar in self._data_provider.stream_bars(symbols, interval):
-            # Apply all strategies to the bar
+            # Build a market snapshot for the strategies
+            context = MarketContext(
+                symbol=bar.symbol,
+                bars=[bar],
+                timestamp=bar.timestamp,
+            )
+
+            # Apply all strategies to the market context
             signals = []
             for strategy in self._registry.strategies:
                 try:
-                    signal = await strategy.analyze([bar])
+                    signal = await strategy.analyze(context)
                     signals.append(signal)
                 except Exception as e:
                     await self._output.present_error(e)

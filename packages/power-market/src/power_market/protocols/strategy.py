@@ -2,8 +2,8 @@
 
 from typing import Protocol, TypeVar
 
-from power_market.types.market import MarketBar
-from power_market.types.signals import TradingSignal
+from power_market.types.market import MarketContext
+from power_market.types.signals import Signal
 
 #: Discriminator type parameter. Each strategy registers itself under a
 #: distinct ``Strategy[T]`` specialization (``T`` is typically its own
@@ -17,9 +17,13 @@ class Strategy(Protocol[T]):
     Protocol for ML trading strategies (plugins).
 
     Each strategy is a separate package that implements this protocol. A
-    strategy is a pure *domain concept* - infrastructure wiring (registering
-    its dependencies into a container) lives in the strategy package's
-    ``plugin.py``, not here.
+    strategy is a pure *domain concept*: it only exposes its identity
+    (``strategy_name``/``version``) and its single domain operation
+    (``analyze``). Infrastructure concerns such as lifecycle management live
+    elsewhere (see ``power_framework.protocols.lifecycle.Lifecycle``), so this
+    interface does not accumulate ``start``/``stop``/``health``/``metrics``
+    hooks over time. Wiring (registering dependencies into a container) lives
+    in the strategy package's ``plugin.py``, not here.
     """
 
     @property
@@ -42,16 +46,18 @@ class Strategy(Protocol[T]):
         """
         ...
 
-    async def analyze(self, bars: list[MarketBar]) -> TradingSignal:
+    async def analyze(self, context: MarketContext) -> Signal:
         """
-        Analyze market data and generate trading signal.
+        Analyze market data and generate a trading signal.
 
         Args:
-            bars: Historical market bars (ordered oldest to newest)
-                  The last bar is the most recent
+            context: Market state snapshot (symbol, bars, and reference time).
+                     The context is the stable input surface and can evolve to
+                     carry quotes, options, fundamentals, news, position, and
+                     account state without changing this interface.
 
         Returns:
-            TradingSignal with BUY, HOLD, or SELL recommendation
+            Signal with BUY, HOLD, or SELL intent
 
         Note:
             This is called frequently (hot path), so performance matters.
@@ -59,25 +65,6 @@ class Strategy(Protocol[T]):
             - Cache computed indicators when possible
             - Avoid blocking I/O
             - Return quickly (< 100ms ideal)
-        """
-        ...
-
-    async def start(self) -> None:
-        """
-        Prepare the strategy for use (part of the runtime-owned lifecycle).
-
-        Called once when the strategy is loaded. Use for:
-        - Loading ML models
-        - Warming up caches
-        - Validating configuration
-        """
-        ...
-
-    async def stop(self) -> None:
-        """
-        Release strategy resources (part of the runtime-owned lifecycle).
-
-        Called when the strategy is unloaded or the application shuts down.
         """
         ...
 
@@ -92,8 +79,8 @@ class SignalAggregator(Protocol):
 
     def aggregate_signals(
         self,
-        signals: list[TradingSignal],
-    ) -> TradingSignal:
+        signals: list[Signal],
+    ) -> Signal:
         """
         Combine multiple strategy signals into one.
 

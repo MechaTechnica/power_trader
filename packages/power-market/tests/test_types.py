@@ -4,10 +4,10 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from power_market.types.market import (MarketBar, TickerSymbol,
-                                                 TimeInterval)
-from power_market.types.signals import (SignalMetadata, SignalType,
-                                                  TradingSignal)
+from power_market.types.market import (MarketBar, MarketContext, TickerSymbol,
+                                       TimeInterval)
+from power_market.types.signals import (Signal, SignalIntent, SignalMetadata,
+                                        SignalSource)
 
 
 class TestTickerSymbol:
@@ -128,41 +128,88 @@ class TestTimeInterval:
             TimeInterval(seconds=-60)
 
 
-class TestTradingSignal:
-    """Tests for TradingSignal type."""
+class TestMarketContext:
+    """Tests for MarketContext type."""
+
+    def test_create_context(self) -> None:
+        """Test creating a market context."""
+        symbol = TickerSymbol(symbol="AAPL")
+        bar = MarketBar(
+            symbol=symbol,
+            timestamp=datetime.now(),
+            open=Decimal("100.00"),
+            high=Decimal("101.00"),
+            low=Decimal("99.00"),
+            close=Decimal("100.50"),
+            volume=1000000,
+        )
+        context = MarketContext(symbol=symbol, bars=[bar], timestamp=bar.timestamp)
+        assert context.symbol == symbol
+        assert list(context.bars) == [bar]
+        assert context.timestamp == bar.timestamp
+
+    def test_context_is_immutable(self) -> None:
+        """Test that MarketContext is immutable."""
+        symbol = TickerSymbol(symbol="AAPL")
+        context = MarketContext(symbol=symbol, bars=[], timestamp=datetime.now())
+        with pytest.raises(AttributeError):
+            context.symbol = TickerSymbol(symbol="MSFT")  # type: ignore
+
+
+class TestSignalSource:
+    """Tests for SignalSource type."""
+
+    def test_create_source(self) -> None:
+        """Test creating a valid signal source."""
+        source = SignalSource(strategy="momentum-v1", version="0.1.0")
+        assert source.strategy == "momentum-v1"
+        assert source.version == "0.1.0"
+
+    def test_empty_strategy_raises(self) -> None:
+        """Test that empty strategy raises ValueError."""
+        with pytest.raises(ValueError, match="cannot be empty"):
+            SignalSource(strategy="")
+
+
+class TestSignal:
+    """Tests for Signal type."""
 
     def test_create_valid_signal(self) -> None:
         """Test creating a valid trading signal."""
-        signal = TradingSignal(
-            signal_type=SignalType.BUY,
+        signal = Signal(
+            intent=SignalIntent.BUY,
             confidence=0.85,
-            timestamp=datetime.now(),
-            strategy_name="test-strategy",
+            generated_at=datetime.now(),
+            source=SignalSource(strategy="test-strategy"),
             metadata={"rsi": 65.0},
         )
-        assert signal.signal_type == SignalType.BUY
+        assert signal.intent == SignalIntent.BUY
         assert signal.confidence == 0.85
         assert signal.metadata["rsi"] == 65.0
+        assert signal.source.strategy == "test-strategy"
 
     def test_confidence_out_of_range_raises(self) -> None:
         """Test that confidence out of range raises ValueError."""
         with pytest.raises(ValueError, match="must be between 0.0 and 1.0"):
-            TradingSignal(
-                signal_type=SignalType.BUY,
+            Signal(
+                intent=SignalIntent.BUY,
                 confidence=1.5,  # Too high!
-                timestamp=datetime.now(),
-                strategy_name="test-strategy",
+                generated_at=datetime.now(),
+                source=SignalSource(strategy="test-strategy"),
             )
 
-    def test_empty_strategy_name_raises(self) -> None:
-        """Test that empty strategy name raises ValueError."""
-        with pytest.raises(ValueError, match="cannot be empty"):
-            TradingSignal(
-                signal_type=SignalType.BUY,
-                confidence=0.85,
-                timestamp=datetime.now(),
-                strategy_name="",  # Empty!
-            )
+    def test_optional_fields_default_to_none(self) -> None:
+        """Test that optional signal fields default to None."""
+        signal = Signal(
+            intent=SignalIntent.HOLD,
+            confidence=0.5,
+            generated_at=datetime.now(),
+            source=SignalSource(strategy="test-strategy"),
+        )
+        assert signal.valid_until is None
+        assert signal.reason is None
+        assert signal.quantity is None
+        assert signal.price is None
 
 
 class TestSignalMetadata:
@@ -184,7 +231,7 @@ class TestSignalMetadata:
         metadata = SignalMetadata(bars_analyzed=100, computation_time_ms=15.5)
         metadata.add_indicator("rsi", 65.0)
         metadata.add_indicator("macd", 0.5)
-        
+
         assert metadata.indicators["rsi"] == 65.0
         assert metadata.indicators["macd"] == 0.5
 
@@ -193,6 +240,6 @@ class TestSignalMetadata:
         metadata = SignalMetadata(bars_analyzed=100, computation_time_ms=15.5)
         metadata.add_warning("Low volume detected")
         metadata.add_warning("High volatility")
-        
+
         assert len(metadata.warnings) == 2
         assert "Low volume" in metadata.warnings[0]

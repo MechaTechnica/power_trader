@@ -3,9 +3,8 @@
 from datetime import datetime
 from decimal import Decimal
 
-import pytest
-from power_market.types.market import MarketBar, TickerSymbol
-from power_market.types.signals import SignalType
+from power_market.types.market import MarketBar, MarketContext, TickerSymbol
+from power_market.types.signals import SignalIntent
 from power_trader_strategy_gex.gex_calculator import GEXCalculator
 from power_trader_strategy_gex.strategy import GEXStrategy
 
@@ -23,8 +22,8 @@ class TestGEXStrategy:
         """Test that no data returns HOLD signal."""
         strategy = GEXStrategy(calculator=GEXCalculator())
 
-        signal = await strategy.analyze([])
-        assert signal.signal_type == SignalType.HOLD
+        signal = await strategy.analyze(create_context([]))
+        assert signal.intent == SignalIntent.HOLD
         assert "reason" in signal.metadata
 
     async def test_analyze_with_mock_data(self) -> None:
@@ -33,10 +32,10 @@ class TestGEXStrategy:
 
         bars = [create_test_bar(100.0) for _ in range(10)]
 
-        signal = await strategy.analyze(bars)
+        signal = await strategy.analyze(create_context(bars))
 
         # Should generate some signal
-        assert signal.signal_type in [SignalType.BUY, SignalType.SELL, SignalType.HOLD]
+        assert signal.intent in [SignalIntent.BUY, SignalIntent.SELL, SignalIntent.HOLD]
         assert 0.0 <= signal.confidence <= 1.0
         assert "current_price" in signal.metadata
         assert "total_gex" in signal.metadata
@@ -46,7 +45,7 @@ class TestGEXStrategy:
         strategy = GEXStrategy(calculator=GEXCalculator())
 
         bars = [create_test_bar(100.0)]
-        signal = await strategy.analyze(bars)
+        signal = await strategy.analyze(create_context(bars))
 
         # Check for expected metadata fields
         assert "total_gex" in signal.metadata
@@ -75,7 +74,7 @@ class TestGEXStrategy:
         assert strategy.min_gex_strength == 0.5
 
         bars = [create_test_bar(100.0)]
-        signal = await strategy.analyze(bars)
+        signal = await strategy.analyze(create_context(bars))
 
         # Should still work
         assert signal is not None
@@ -92,3 +91,10 @@ def create_test_bar(price: float) -> MarketBar:
         close=Decimal(str(price)),
         volume=1000000,
     )
+
+
+def create_context(bars: list[MarketBar]) -> MarketContext:
+    """Helper to wrap bars in a MarketContext."""
+    symbol = bars[0].symbol if bars else TickerSymbol(symbol="SPY")
+    timestamp = bars[-1].timestamp if bars else datetime.now()
+    return MarketContext(symbol=symbol, bars=bars, timestamp=timestamp)

@@ -2,29 +2,31 @@
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
-from power_market.protocols.strategy import Strategy
-from power_market.types.market import MarketBar
-from power_market.types.signals import SignalType, TradingSignal
+from power_framework.protocols.lifecycle import Lifecycle
+from power_market.types.market import MarketContext
+from power_market.types.signals import Signal, SignalIntent, SignalSource
 from power_trader_strategy_gex.gex_calculator import (GEXCalculator, GEXLevel,
                                                       OptionData)
 
 
-class GEXStrategy:
+class GEXStrategy(Lifecycle):
     """
     GEX (Gamma Exposure) trading strategy.
-    
+
     Strategy logic:
     1. Calculate GEX levels from options chain
     2. Identify key support (positive GEX) and resistance (negative GEX) levels
     3. Generate signals based on price action relative to GEX levels
-    
+
     Signal rules:
     - BUY when price approaches strong positive  GEX level (support)
     - SELL when price approaches strong negative GEX level (resistance)
     - HOLD otherwise or in low GEX environment
-    
-    Implements Strategy protocol as a plugin.
+
+    Implements the Strategy protocol as a plugin and the framework Lifecycle
+    protocol (a separate, infrastructure-owned concern) for setup/teardown.
     """
 
     def __init__(
@@ -61,19 +63,20 @@ class GEXStrategy:
         """Strategy version."""
         return "0.1.0"
 
-    async def analyze(self, bars: list[MarketBar]) -> TradingSignal:
+    async def analyze(self, context: MarketContext) -> Signal:
         """
         Analyze market using GEX levels.
-        
+
         Args:
-            bars: Historical market bars (oldest to newest)
-            
+            context: Market state snapshot (symbol, bars, reference time)
+
         Returns:
-            TradingSignal with recommendation
+            Signal with recommendation
         """
+        bars = context.bars
         if not bars:
             return self._create_signal(
-                SignalType.HOLD, 0.5, {"reason": "no_data"}
+                SignalIntent.HOLD, 0.5, {"reason": "no_data"}
             )
 
         current_bar = bars[-1]
@@ -85,7 +88,7 @@ class GEXStrategy:
 
         if not options:
             return self._create_signal(
-                SignalType.HOLD,
+                SignalIntent.HOLD,
                 0.5,
                 {
                     "reason": "no_options_data",
@@ -108,11 +111,11 @@ class GEXStrategy:
         zero_gamma_strike = self.gex_calculator.find_zero_gamma_level(gex_by_strike)
 
         # Generate signal based on GEX analysis
-        signal_type, confidence, metadata = self._generate_signal(
+        intent, confidence, metadata = self._generate_signal(
             current_price, key_levels, total_gex, zero_gamma_strike
         )
 
-        return self._create_signal(signal_type, confidence, metadata)
+        return self._create_signal(intent, confidence, metadata)
 
     def _generate_signal(
         self,
@@ -120,20 +123,20 @@ class GEXStrategy:
         key_levels: list[GEXLevel],
         total_gex: float,
         zero_gamma_strike: Decimal | None,
-    ) -> tuple[SignalType, float, dict]:
+    ) -> tuple[SignalIntent, float, dict[str, Any]]:
         """
         Generate trading signal from GEX analysis.
-        
+
         Args:
             current_price: Current stock price
             key_levels: Key GEX support/resistance levels
             total_gex: Total market GEX
             zero_gamma_strike: Zero gamma flip point
-            
+
         Returns:
-            Tuple of (signal_type, confidence, metadata)
+            Tuple of (intent, confidence, metadata)
         """
-        metadata = {
+        metadata: dict[str, Any] = {
             "current_price": round(current_price, 2),
             "total_gex": round(total_gex / 1e9, 2),  # In billions
             "gex_environment": "positive" if total_gex > 0 else "negative",
@@ -143,7 +146,7 @@ class GEXStrategy:
 
         # No strong levels found
         if not key_levels:
-            return SignalType.HOLD, 0.5, {**metadata, "reason": "no_key_levels"}
+            return SignalIntent.HOLD, 0.5, {**metadata, "reason": "no_key_levels"}
 
         # Find nearby levels
         nearby_levels = [
@@ -165,7 +168,7 @@ class GEXStrategy:
             )
 
         if not nearby_levels:
-            return SignalType.HOLD, 0.6, {**metadata, "reason": "no_nearby_levels"}
+            return SignalIntent.HOLD, 0.6, {**metadata, "reason": "no_nearby_levels"}
 
         # Prioritize strongest nearby level
         strongest_level = max(nearby_levels, key=lambda x: x.strength)
@@ -174,7 +177,7 @@ class GEXStrategy:
         if not strongest_level.is_resistance:
             confidence = 0.5 + (strongest_level.strength * 0.4)  # 0.5 to 0.9
             return (
-                SignalType.BUY,
+                SignalIntent.BUY,
                 confidence,
                 {
                     **metadata,
@@ -188,7 +191,7 @@ class GEXStrategy:
         else:
             confidence = 0.5 + (strongest_level.strength * 0.4)  # 0.5 to 0.9
             return (
-                SignalType.SELL,
+                SignalIntent.SELL,
                 confidence,
                 {
                     **metadata,
@@ -199,41 +202,41 @@ class GEXStrategy:
             )
 
     async def _fetch_options_chain(
-        self, symbol: any, current_price: float
+        self, symbol: Any, current_price: float
     ) -> list[OptionData]:
         """
         Fetch options chain data.
-        
+
         In production, this would:
         1. Connect to Interactive Brokers API
         2. Fetch options chain for the symbol
         3. Filter for liquid options (volume > threshold)
         4. Return list of OptionData
-        
+
         For now, returns mock data for demonstration.
-        
+
         Args:
             symbol: Stock symbol
             current_price: Current stock price
-            
+
         Returns:
             List of option contracts
         """
         # TODO: Implement actual IB API call
         # For demonstration, return mock data
-        
+
         if self._options_cache:
             return self._options_cache
-        
+
         # Mock options chain (in production, fetch from IB)
         # Create ATM and nearby strikes
         mock_options = []
         base_price = Decimal(str(int(current_price)))
-        
+
         # Create options at multiple strikes around current price
         for offset in range(-10, 11):
             strike = base_price + Decimal(offset * 5)
-            
+
             # Mock call option
             mock_options.append(
                 OptionData(
@@ -245,7 +248,7 @@ class GEXStrategy:
                     underlying_price=Decimal(str(current_price)),
                 )
             )
-            
+
             # Mock put option
             mock_options.append(
                 OptionData(
@@ -257,7 +260,7 @@ class GEXStrategy:
                     underlying_price=Decimal(str(current_price)),
                 )
             )
-        
+
         self._options_cache = mock_options
         return mock_options
 
@@ -271,13 +274,13 @@ class GEXStrategy:
         self._options_cache.clear()
 
     def _create_signal(
-        self, signal_type: SignalType, confidence: float, metadata: dict
-    ) -> TradingSignal:
-        """Helper to create trading signal."""
-        return TradingSignal(
-            signal_type=signal_type,
+        self, intent: SignalIntent, confidence: float, metadata: dict[str, Any]
+    ) -> Signal:
+        """Helper to create a trading signal."""
+        return Signal(
+            intent=intent,
             confidence=confidence,
-            timestamp=datetime.now(),
-            strategy_name=self.strategy_name,
+            generated_at=datetime.now(),
+            source=SignalSource(strategy=self.strategy_name, version=self.version),
             metadata=metadata,
         )

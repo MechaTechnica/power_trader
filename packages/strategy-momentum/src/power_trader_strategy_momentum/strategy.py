@@ -1,24 +1,26 @@
 """Momentum trading strategy implementation."""
 
 from datetime import datetime
+from typing import Any
 
-from power_market.protocols.strategy import Strategy
-from power_market.types.market import MarketBar
-from power_market.types.signals import SignalType, TradingSignal
+from power_framework.protocols.lifecycle import Lifecycle
+from power_market.types.market import MarketContext
+from power_market.types.signals import Signal, SignalIntent, SignalSource
 
 
-class MomentumStrategy:
+class MomentumStrategy(Lifecycle):
     """
     Momentum-based trading strategy.
-    
-    Implements Strategy protocol as a plugin.
-    
+
+    Implements the Strategy protocol as a plugin and the framework Lifecycle
+    protocol (a separate, infrastructure-owned concern) for setup/teardown.
+
     Strategy logic:
     - Calculates simple price momentum
     - Generates BUY signal when momentum is positive and strong
     - Generates SELL signal when momentum is negative and strong
     - Otherwise HOLD
-    
+
     Note: This is a simplified example. Real strategies would use
     more sophisticated indicators like RSI, MACD, etc.
     """
@@ -42,45 +44,48 @@ class MomentumStrategy:
         """Strategy version."""
         return "0.1.0"
 
-    async def analyze(self, bars: list[MarketBar]) -> TradingSignal:
+    async def analyze(self, context: MarketContext) -> Signal:
         """
         Analyze market bars and generate trading signal.
-        
+
         Args:
-            bars: Historical market bars (oldest to newest)
-            
+            context: Market state snapshot (symbol, bars, reference time)
+
         Returns:
-            TradingSignal with recommendation
+            Signal with recommendation
         """
+        bars = context.bars
         if len(bars) < 2:
             # Not enough data - HOLD
-            return self._create_signal(SignalType.HOLD, 0.5, {"reason": "insufficient_data"})
-        
+            return self._create_signal(
+                SignalIntent.HOLD, 0.5, {"reason": "insufficient_data"}
+            )
+
         # Calculate simple momentum (% change from N bars ago)
         current_price = float(bars[-1].close)
         lookback_idx = max(0, len(bars) - self._lookback_periods - 1)
         past_price = float(bars[lookback_idx].close)
-        
+
         momentum = (current_price - past_price) / past_price * 100
-        
+
         # Signal logic
         if momentum > 2.0:  # Strong upward momentum (>2%)
-            signal_type = SignalType.BUY
+            intent = SignalIntent.BUY
             confidence = min(0.5 + (momentum / 10), 0.95)
         elif momentum < -2.0:  # Strong downward momentum (<-2%)
-            signal_type = SignalType.SELL
+            intent = SignalIntent.SELL
             confidence = min(0.5 + (abs(momentum) / 10), 0.95)
         else:  # Weak momentum
-            signal_type = SignalType.HOLD
+            intent = SignalIntent.HOLD
             confidence = 0.6
-        
+
         # Calculate additional metrics
         volume_avg = sum(bar.volume for bar in bars[-5:]) / min(5, len(bars))
         current_volume = bars[-1].volume
         volume_ratio = current_volume / volume_avg if volume_avg > 0 else 1.0
-        
+
         return self._create_signal(
-            signal_type,
+            intent,
             confidence,
             {
                 "momentum_pct": round(momentum, 2),
@@ -101,13 +106,13 @@ class MomentumStrategy:
         pass
 
     def _create_signal(
-        self, signal_type: SignalType, confidence: float, metadata: dict
-    ) -> TradingSignal:
-        """Helper to create trading signal."""
-        return TradingSignal(
-            signal_type=signal_type,
+        self, intent: SignalIntent, confidence: float, metadata: dict[str, Any]
+    ) -> Signal:
+        """Helper to create a trading signal."""
+        return Signal(
+            intent=intent,
             confidence=confidence,
-            timestamp=datetime.now(),
-            strategy_name=self.strategy_name,
+            generated_at=datetime.now(),
+            source=SignalSource(strategy=self.strategy_name, version=self.version),
             metadata=metadata,
         )

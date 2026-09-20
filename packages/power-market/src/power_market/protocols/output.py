@@ -3,7 +3,7 @@
 from typing import Protocol
 
 from power_market.types.market import TickerSymbol
-from power_market.types.signals import SignalMetadata, TradingSignal
+from power_market.types.signals import Signal, SignalMetadata
 
 
 class SignalPresenter(Protocol):
@@ -19,7 +19,7 @@ class SignalPresenter(Protocol):
     async def present_signal(
         self,
         symbol: TickerSymbol,
-        signal: TradingSignal,
+        signal: Signal,
         metadata: SignalMetadata,
     ) -> None:
         """

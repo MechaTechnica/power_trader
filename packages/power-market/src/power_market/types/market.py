@@ -1,5 +1,6 @@
 """Market data types - using dataclasses for performance in hot paths."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -83,3 +84,25 @@ class TimeInterval:
             minutes = self.seconds // 60
             return f"{minutes}m" if self.seconds % 60 == 0 else f"{self.seconds}s"
         return f"{self.seconds}s"
+
+
+@dataclass(frozen=True, slots=True)
+class MarketContext:
+    """
+    Snapshot of market state handed to a strategy for analysis.
+
+    This is the *stable* input surface for strategies. Instead of passing a
+    bare ``list[MarketBar]`` (which locks strategies into a single data shape),
+    strategies receive a context object that can grow to carry quotes, options,
+    fundamentals, news, market state, position, and account state without
+    changing the strategy interface.
+
+    Args:
+        symbol: The symbol being analyzed
+        bars: Historical market bars (ordered oldest to newest)
+        timestamp: The reference time of this context snapshot
+    """
+
+    symbol: TickerSymbol
+    bars: Sequence[MarketBar]
+    timestamp: datetime

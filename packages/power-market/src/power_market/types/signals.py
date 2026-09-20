@@ -2,12 +2,13 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 from typing import Any
 
 
-class SignalType(str, Enum):
-    """Trading signal types."""
+class SignalIntent(str, Enum):
+    """The action a strategy intends the trader to take."""
 
     BUY = "buy"
     SELL = "sell"
@@ -18,22 +19,55 @@ class SignalType(str, Enum):
 
 
 @dataclass(frozen=True, slots=True)
-class TradingSignal:
+class SignalSource:
     """
-    Trading signal from a strategy.
-    
+    Identifies the strategy (and version) that produced a signal.
+
     Args:
-        signal_type: BUY, SELL, or HOLD
+        strategy: Unique strategy identifier (e.g., "momentum-v1")
+        version: Strategy version (e.g., "0.1.0")
+    """
+
+    strategy: str
+    version: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate source."""
+        if not self.strategy or not self.strategy.strip():
+            raise ValueError("Strategy cannot be empty")
+
+
+@dataclass(frozen=True, slots=True)
+class Signal:
+    """
+    Trading signal produced by a strategy.
+
+    A signal captures the strategy's *intent* plus enough context to act on
+    it: how confident it is, when it was generated, when it expires, and which
+    strategy produced it. Optional ``quantity``/``price`` fields allow sizing
+    and target information without forcing every strategy to supply them, and
+    ``reason`` carries the human-readable rationale behind the intent.
+
+    Args:
+        intent: BUY, SELL, or HOLD
         confidence: Confidence score (0.0 to 1.0)
-        timestamp: When the signal was generated
-        strategy_name: Name/ID of the strategy that generated it
+        generated_at: When the signal was generated
+        source: Strategy (and version) that produced the signal
+        valid_until: Optional expiry after which the signal should be ignored
+        reason: Optional human-readable rationale for the intent
+        quantity: Optional position sizing suggestion
+        price: Optional target/limit price suggestion
         metadata: Additional strategy-specific information
     """
 
-    signal_type: SignalType
+    intent: SignalIntent
     confidence: float
-    timestamp: datetime
-    strategy_name: str
+    generated_at: datetime
+    source: SignalSource
+    valid_until: datetime | None = None
+    reason: str | None = None
+    quantity: Decimal | None = None
+    price: Decimal | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -42,19 +76,17 @@ class TradingSignal:
             raise ValueError(
                 f"Confidence ({self.confidence}) must be between 0.0 and 1.0"
             )
-        if not self.strategy_name or not self.strategy_name.strip():
-            raise ValueError("Strategy name cannot be empty")
 
 
 @dataclass
 class SignalMetadata:
     """
     Additional metadata about signal generation.
-    
-    This is mutable (unlike TradingSignal) as it's built up during processing.
+
+    This is mutable (unlike Signal) as it's built up during processing.
     """
 
-    bars_analyzed:  int
+    bars_analyzed: int
     computation_time_ms: float
     indicators: dict[str, float] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)

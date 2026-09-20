@@ -12,20 +12,23 @@ __version__ = "0.1.0"
 from power_market.protocols.data import MarketDataProvider, MarketScanner
 from power_market.protocols.output import SignalPresenter
 from power_market.protocols.strategy import SignalAggregator, Strategy
-from power_market.types.market import MarketBar, TickerSymbol, TimeInterval
-from power_market.types.signals import (SignalMetadata, SignalType,
-                                        TradingSignal)
+from power_market.types.market import (MarketBar, MarketContext, TickerSymbol,
+                                       TimeInterval)
+from power_market.types.signals import (Signal, SignalIntent, SignalMetadata,
+                                        SignalSource)
 
 __all__ = [
     "MarketBar",
+    "MarketContext",
     "MarketDataProvider",
     "MarketScanner",
+    "Signal",
     "SignalAggregator",
+    "SignalIntent",
     "SignalMetadata",
     "SignalPresenter",
-    "SignalType",
+    "SignalSource",
     "Strategy",
     "TickerSymbol",
     "TimeInterval",
-    "TradingSignal",
 ]

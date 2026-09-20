@@ -9,8 +9,11 @@ class StrategyRegistry(Lifecycle):
 
     The container injects ``list[Strategy]`` (every ``Strategy[T]``
     specialization) into this service. As a single :class:`Lifecycle`
-    component, the runtime starts/stops all strategies in a consistent order
-    rather than having the application coordinate them individually.
+    component, the runtime starts/stops this registry in a consistent order.
+
+    Lifecycle is *not* part of the :class:`Strategy` domain interface, so the
+    registry only drives ``start``/``stop`` on strategies that separately opt
+    into the framework :class:`Lifecycle` protocol.
     """
 
     def __init__(self, strategies: list[Strategy]) -> None:
@@ -22,11 +25,13 @@ class StrategyRegistry(Lifecycle):
         return self._strategies
 
     async def start(self) -> None:
-        """Start every strategy in registration order."""
+        """Start every strategy that implements the lifecycle protocol."""
         for strategy in self._strategies:
-            await strategy.start()
+            if isinstance(strategy, Lifecycle):
+                await strategy.start()
 
     async def stop(self) -> None:
-        """Stop every strategy in registration order."""
+        """Stop every strategy that implements the lifecycle protocol."""
         for strategy in self._strategies:
-            await strategy.stop()
+            if isinstance(strategy, Lifecycle):
+                await strategy.stop()
