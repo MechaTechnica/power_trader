@@ -15,6 +15,7 @@ from power_core.bootstrap import create_container
 from power_core.container import Container
 from power_core.exceptions import (ApplicationError, ConfigurationError,
                                    ConnectionError, DIError, PluginError)
+from power_framework.protocols.container import Lifetime
 
 __all__ = [
     "ApplicationError",
@@ -22,6 +23,7 @@ __all__ = [
     "ConnectionError",
     "Container",
     "DIError",
+    "Lifetime",
     "PluginError",
     "create_container",
 ]

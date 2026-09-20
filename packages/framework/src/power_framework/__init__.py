@@ -12,7 +12,7 @@ __version__ = "0.1.0"
 from power_framework.application import (ApplicationBase, ApplicationBuilder,
                                          Runtime)
 from power_framework.plugins import Plugin
-from power_framework.protocols.container import Container
+from power_framework.protocols.container import Container, Lifetime
 from power_framework.protocols.lifecycle import Lifecycle, LifecycleRegistry
 from power_framework.settings import CoreSettings, JsonFileSettings
 
@@ -24,6 +24,7 @@ __all__ = [
     "JsonFileSettings",
     "Lifecycle",
     "LifecycleRegistry",
+    "Lifetime",
     "Plugin",
     "Runtime",
 ]

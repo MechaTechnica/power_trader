@@ -1,9 +1,28 @@
 """Dependency injection container protocol."""
 
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable, Iterator
+from enum import Enum
 from typing import Any, Protocol, TypeVar, overload
 
 T = TypeVar("T", covariant=True)
+
+
+class Lifetime(str, Enum):
+    """How long a registered binding lives before it is recreated.
+
+    This replaces ad-hoc ``"singleton"`` / ``"transient"`` strings with a
+    single, self-documenting vocabulary shared by the framework contract and
+    the concrete runtime.
+    """
+
+    SINGLETON = "singleton"
+    """One instance shared by the whole application (the root container)."""
+
+    SCOPED = "scoped"
+    """One instance per scope (child container), e.g. per request/message/job."""
+
+    TRANSIENT = "transient"
+    """A fresh instance on every resolve."""
 
 
 class Container(Protocol):
@@ -13,10 +32,27 @@ class Container(Protocol):
     Concrete implementations (e.g. ``power_core.container.Container``)
     satisfy this protocol structurally. Applications depend on this protocol
     so they never need to import a concrete container implementation.
+
+    Containers form a hierarchy: the root is the *application scope* and
+    :meth:`create_child` (or the :meth:`scope` context managers) produce
+    nested *request*, *message*, or *job* scopes. ``Lifetime.SINGLETON``
+    bindings are cached on the root, ``Lifetime.SCOPED`` bindings are cached
+    on the scope that resolves them, and ``Lifetime.TRANSIENT`` bindings are
+    never cached.
     """
 
-    def create_child(self) -> "Container":
-        """Create a child container that falls back to this one for lookups."""
+    @property
+    def name(self) -> str:
+        """The human-readable name of this container/scope."""
+        ...
+
+    def create_child(self, name: str = "child") -> "Container":
+        """Create a child scope that falls back to this container for lookups.
+
+        Scoped bindings resolved through the child are cached on the child, so
+        each child gets its own instances (e.g. a distinct correlation ID or
+        transaction context per message).
+        """
         ...
 
     @overload
@@ -25,7 +61,7 @@ class Container(Protocol):
         interface: Any,
         implementation: type[Any],
         *,
-        lifetime: str = "singleton",
+        lifetime: Lifetime = Lifetime.SINGLETON,
         **kwargs: Any,
     ) -> None:
         """Register a concrete class (constructor-injected)."""
@@ -37,7 +73,7 @@ class Container(Protocol):
         interface: Any,
         implementation: Callable[..., Any],
         *,
-        lifetime: str = "singleton",
+        lifetime: Lifetime = Lifetime.SINGLETON,
         **kwargs: Any,
     ) -> None:
         """Register a factory callable, e.g. ``lambda: make_thing()``."""
@@ -48,7 +84,7 @@ class Container(Protocol):
         self,
         interface: Any,
         *,
-        lifetime: str = "singleton",
+        lifetime: Lifetime = Lifetime.SINGLETON,
     ) -> None:
         """Register a concrete type to itself."""
         ...
@@ -58,7 +94,7 @@ class Container(Protocol):
         interface: Any,
         implementation: Any = None,
         *,
-        lifetime: str = "singleton",
+        lifetime: Lifetime = Lifetime.SINGLETON,
         **kwargs: Any,
     ) -> None:
         """Register an implementation (class or factory) against an interface."""
@@ -98,4 +134,20 @@ class Container(Protocol):
 
     async def resolve_async(self, interface: type[Any]) -> Any:
         """Resolve ``interface``, awaiting any async factory hooks."""
+        ...
+
+    def scope(self, name: str = "scope") -> Iterator["Container"]:
+        """Yield a child scope and dispose its scoped instances on exit."""
+        ...
+
+    def scope_async(self, name: str = "scope") -> AsyncIterator["Container"]:
+        """Yield a child scope and async-dispose its scoped instances on exit."""
+        ...
+
+    def dispose(self) -> None:
+        """Dispose (synchronously) every instance cached by this scope."""
+        ...
+
+    async def dispose_async(self) -> None:
+        """Dispose (asynchronously) every instance cached by this scope."""
         ...
