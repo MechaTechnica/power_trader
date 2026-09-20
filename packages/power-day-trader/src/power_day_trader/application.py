@@ -2,6 +2,7 @@
 
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_framework.application import ApplicationBase
+from power_framework.observability import Logger
 from power_framework.protocols.output import OutputPresenter
 
 
@@ -14,14 +15,22 @@ class PowerDayTraderApplication(ApplicationBase):
     infrastructure and domain-service components in their own order.
     """
 
-    def __init__(self, output: OutputPresenter, cli: CLIAdapter) -> None:
+    def __init__(
+        self,
+        output: OutputPresenter,
+        cli: CLIAdapter,
+        logger: Logger,
+    ) -> None:
         self._output = output
         self._cli = cli
+        self._logger = logger
 
     async def start(self) -> None:
+        self._logger.info("application_started")
         await self._output.present_status("Power Day Trader started successfully")
 
     async def stop(self) -> None:
+        self._logger.info("application_stopped")
         await self._output.present_status("Power Day Trader shut down")
 
     def run(self) -> None:

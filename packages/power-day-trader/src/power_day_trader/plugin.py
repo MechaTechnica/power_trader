@@ -10,6 +10,9 @@ from power_day_trader.adapters.secondary.terminal_output import \
 from power_day_trader.config.settings import PowerTraderSettings
 from power_day_trader.core.strategy_registry import StrategyRegistry
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
+from power_day_trader.health import (IBConnectionCheck, MarketDataCheck,
+                                     StrategiesLoadedCheck)
+from power_framework.health import HealthCheckRegistry
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container
 from power_framework.protocols.lifecycle import LifecycleRegistry
@@ -27,19 +30,21 @@ class PowerDayTraderPlugin(Plugin):
     settings_class = PowerTraderSettings
 
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:
-        """Register the application's adapters and use cases."""
+        """Register the application's adapters, use cases, and health checks."""
         app_settings: PowerTraderSettings = container.resolve(PowerTraderSettings)
 
-        container.register(OutputPresenter, TerminalOutputAdapter)
-        container.register(SignalPresenter, TerminalOutputAdapter)
-
-        container.register(
-            MarketDataProvider,
-            InteractiveBrokersAdapter,
+        # A single shared IB adapter backs both the concrete type and the
+        # ``MarketDataProvider`` interface (one connection for the whole app).
+        ib_adapter = InteractiveBrokersAdapter(
             host=app_settings.ib.host,
             port=app_settings.ib.port,
             client_id=app_settings.ib.client_id,
         )
+        container.register_instance(InteractiveBrokersAdapter, ib_adapter)
+        container.register_instance(MarketDataProvider, ib_adapter)
+
+        container.register(OutputPresenter, TerminalOutputAdapter)
+        container.register(SignalPresenter, TerminalOutputAdapter)
         container.register(SignalAggregator, WeightedAverageAggregator)
         container.register(StrategyRegistry, StrategyRegistry)
         container.register(MonitorStocksUseCase, MonitorStocksUseCase)
@@ -48,3 +53,9 @@ class PowerDayTraderPlugin(Plugin):
         # Lifecycle ordering: infrastructure first, then domain services.
         runtime.register(MarketDataProvider)
         runtime.register(StrategyRegistry)
+
+        # Readiness checks, evaluated by the framework's health capability.
+        health = container.resolve(HealthCheckRegistry)
+        health.register(IBConnectionCheck(ib_adapter))
+        health.register(MarketDataCheck(ib_adapter))
+        health.register(StrategiesLoadedCheck(container.resolve(StrategyRegistry)))

@@ -31,6 +31,11 @@ class InteractiveBrokersAdapter:
         self._client_id = client_id
         self._connected = False
 
+    @property
+    def connected(self) -> bool:
+        """Whether the adapter currently holds a connection to IB."""
+        return self._connected
+
     async def start(self) -> None:
         """Establish connection to Interactive Brokers."""
         if self._connected:

@@ -147,6 +147,10 @@ class FrameworkSettings(Settings):
         default="power-trader",
         description="Name of the running service (used in logs/telemetry)",
     )
+    service_version: str = Field(
+        default="0.1.0",
+        description="Semantic version of the running service (included in telemetry)",
+    )
     log_level: LogLevel = Field(
         default=LogLevel.INFO,
         description="Root log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",

@@ -11,6 +11,15 @@ __version__ = "0.1.0"
 
 from power_framework.application import (ApplicationBase, ApplicationBuilder,
                                          Runtime)
+from power_framework.health import (HealthCheck, HealthCheckRegistry,
+                                    HealthReport, HealthService, HealthStatus,
+                                    Status)
+from power_framework.observability import (InMemoryMetrics, InMemoryTracer,
+                                           Logger, Metrics, Span,
+                                           StructuredLogger, Tracer,
+                                           correlation_scope,
+                                           current_correlation_id,
+                                           current_trace_id)
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container, Lifetime
 from power_framework.protocols.lifecycle import Lifecycle, LifecycleRegistry
@@ -24,13 +33,29 @@ __all__ = [
     "Container",
     "Environment",
     "FrameworkSettings",
+    "HealthCheck",
+    "HealthCheckRegistry",
+    "HealthReport",
+    "HealthService",
+    "HealthStatus",
+    "InMemoryMetrics",
+    "InMemoryTracer",
     "Lifecycle",
     "LifecycleRegistry",
     "Lifetime",
+    "Logger",
     "LogLevel",
+    "Metrics",
     "Plugin",
     "Runtime",
     "Settings",
+    "Span",
+    "Status",
+    "StructuredLogger",
     "TelemetrySettings",
+    "Tracer",
+    "correlation_scope",
+    "current_correlation_id",
+    "current_trace_id",
     "load_settings",
 ]

@@ -1,5 +1,6 @@
 """Tests for the trading app dependency container wiring."""
 
+from power_core.bootstrap import create_container
 from power_core.container import Container
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_day_trader.config.settings import PowerTraderSettings
@@ -12,8 +13,9 @@ from power_market.protocols.strategy import SignalAggregator
 
 def _build_container() -> Container:
     """Build a container the same way the framework does, without running the CLI."""
-    container = Container()
-    # The framework loads + registers settings before the plugin wires anything.
+    # The runtime provides framework capabilities (config, observability, health).
+    container = create_container()
+    # The framework loads + registers app settings before the plugin wires anything.
     container.register_instance(PowerTraderSettings, load_settings(PowerTraderSettings))
     PowerDayTraderPlugin().register(container, Runtime(container))
     return container
