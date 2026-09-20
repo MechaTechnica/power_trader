@@ -10,22 +10,26 @@ from power_market.types.market import MarketBar, TickerSymbol, TimeInterval
 class MarketDataProvider(Protocol):
     """
     Protocol for market data providers.
-    
+
     This abstracts away the specific broker/data source (Interactive Brokers, etc.)
     Applications depend on this protocol, not concrete implementations.
+
+    ``start``/``stop`` form the provider's lifecycle (matching the framework's
+    ``Lifecycle`` protocol), so the runtime can drive connection setup and
+    teardown in a consistent order.
     """
 
-    async def connect(self) -> None:
+    async def start(self) -> None:
         """
-        Establish connection to data provider.
-        
+        Establish connection to the data provider.
+
         Raises:
             ConnectionError: If connection fails
         """
         ...
 
-    async def disconnect(self) -> None:
-        """Close connection to data provider."""
+    async def stop(self) -> None:
+        """Close the connection to the data provider."""
         ...
 
     async def stream_bars(
@@ -35,14 +39,14 @@ class MarketDataProvider(Protocol):
     ) -> AsyncIterator[MarketBar]:
         """
         Stream real-time market bars for given symbols.
-        
+
         Args:
             symbols: List of ticker symbols to stream
             interval: Time interval for bars
-            
+
         Yields:
             MarketBar objects as they become available
-            
+
         Raises:
             ConnectionError: If not connected
             ValueError: If symbols invalid
@@ -69,16 +73,16 @@ class MarketDataProvider(Protocol):
     ) -> list[MarketBar]:
         """
         Retrieve historical market bars.
-        
+
         Args:
             symbol: Ticker symbol
             interval: Time interval for bars
             start: Start datetime (inclusive)
             end: End datetime (inclusive)
-            
+
         Returns:
             List of historical bars
-            
+
         Raises:
             ConnectionError: If not connected
             ValueError: If date range invalid
@@ -89,7 +93,7 @@ class MarketDataProvider(Protocol):
 class MarketScanner(Protocol):
     """
     Protocol for scanning/discovering tradeable securities.
-    
+
     Used to find stocks matching criteria instead of manually specifying symbols.
     """
 
@@ -103,17 +107,17 @@ class MarketScanner(Protocol):
     ) -> list[TickerSymbol]:
         """
         Scan market for stocks matching criteria.
-        
+
         Args:
             min_volume: Minimum average volume
             min_price: Minimum stock price
             max_price: Maximum stock price
             sector: Sector/industry filter
             **kwargs: Additional provider-specific criteria
-            
+
         Returns:
             List of ticker symbols matching criteria
-            
+
         Raises:
             ConnectionError: If not connected
         """

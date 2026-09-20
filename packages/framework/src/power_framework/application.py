@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
+from typing import Any
 
 from power_framework.plugins import (Plugin, _filter_entry_points,
                                      _get_entry_points)
 from power_framework.protocols.container import Container
+from power_framework.protocols.lifecycle import Lifecycle, LifecycleRegistry
 
 PLUGIN_GROUP = "power.plugins"
 CORE_NAME = "power-core"
@@ -14,19 +17,76 @@ class ApplicationBase:
     """Base class for an application's lifecycle and run entry point.
 
     Subclasses declare their dependencies as constructor arguments and override
-    ``on_startup``, ``on_shutdown``, and ``run``. The framework resolves and
-    injects those dependencies automatically, so an application never needs to
-    know that a DI container exists.
+    ``start``, ``stop``, and ``run``. The framework resolves and injects those
+    dependencies automatically, so an application never needs to know that a DI
+    container exists.
+
+    The application is itself a :class:`Lifecycle` (the final stage to start and
+    the first to stop); its own ``start``/``stop`` handle only application-level
+    concerns.
     """
 
-    async def on_startup(self) -> None:
+    async def start(self) -> None:
         return None
 
-    async def on_shutdown(self) -> None:
+    async def stop(self) -> None:
         return None
 
     def run(self) -> None:
         return None
+
+
+class Runtime(LifecycleRegistry):
+    """Owns the ordered lifecycle of an application and its components.
+
+    As a :class:`LifecycleRegistry`, it collects component types in the order
+    plugins register them (infrastructure, domain services, extensions). ``start``
+    resolves each type from the container and drives it in that order, then
+    starts the application; ``stop`` reverses this. The application is always
+    started last and stopped first.
+    """
+
+    def __init__(self, container: Container) -> None:
+        self._container = container
+        self._component_types: list[type[Any]] = []
+        self._application: ApplicationBase | None = None
+
+    def register(self, component_type: type[Any]) -> None:
+        """Register a lifecycle component type to be resolved and driven."""
+        self._component_types.append(component_type)
+
+    def attach(self, application: ApplicationBase) -> None:
+        """Attach the resolved application as the final lifecycle component."""
+        self._application = application
+
+    @property
+    def application(self) -> ApplicationBase:
+        application = self._application
+        if application is None:
+            raise RuntimeError("No application has been attached to the runtime.")
+        return application
+
+    async def start(self) -> None:
+        """Start every component in dependency order, then the application."""
+        for component_type in self._component_types:
+            component = self._container.resolve(component_type)
+            await component.start()
+        await self.application.start()
+
+    async def stop(self) -> None:
+        """Stop the application first, then components in reverse order."""
+        await self.application.stop()
+        for component_type in reversed(self._component_types):
+            component = self._container.resolve(component_type)
+            await component.stop()
+
+    def run(self) -> None:
+        """Start the runtime, run the application, then stop the runtime."""
+        asyncio.run(self.start())
+        try:
+            self.application.run()
+        finally:
+            asyncio.run(self.stop())
 
 
 class ApplicationBootstrapper:
@@ -34,8 +94,8 @@ class ApplicationBootstrapper:
 
     This class bridges the framework's plugin discovery with the concrete
     runtime (``power-core``) discovered via entry points. Plugins are registered
-    into the container first, then the application is resolved from the
-    container so its constructor dependencies are injected.
+    into the container first (registering their lifecycle components), then the
+    application is resolved and attached to the runtime.
     """
 
     def _load_core_entry_point(self) -> Callable[[], Container]:
@@ -86,27 +146,25 @@ class ApplicationBootstrapper:
         core_entry_point = self._load_core_entry_point()
         return core_entry_point()
 
-    def bootstrap(self, application_class: type[ApplicationBase]) -> ApplicationBase:
-        """Build the container, register plugins, then resolve the application.
-
-        Plugins are registered before the application is resolved so the
-        application's constructor dependencies are available to the container.
-        """
+    def bootstrap(self, application_class: type[ApplicationBase]) -> Runtime:
+        """Build the container, register plugins, resolve and attach the app."""
         container = self._load_core_container()
+        runtime = Runtime(container)
         for plugin in self._initialize_plugins():
-            plugin.register(container)
+            plugin.register(container, runtime)
         container.register(application_class, application_class)
-        return container.resolve(application_class)
+        runtime.attach(container.resolve(application_class))
+        return runtime
 
 
 class ApplicationBuilder:
-    """Fluent builder that assembles an application from plugins and an app."""
+    """Fluent builder that assembles an application into a managed runtime."""
 
     def __init__(self, application_class: type[ApplicationBase]) -> None:
         self._application_class = application_class
 
-    def build(self) -> ApplicationBase:
-        """Build the application: container, framework services, plugins, app."""
+    def build(self) -> Runtime:
+        """Build the application and wrap it in a lifecycle-owning runtime."""
         app_bootstrapper = ApplicationBootstrapper()
         return app_bootstrapper.bootstrap(self._application_class)
 
@@ -114,4 +172,5 @@ class ApplicationBuilder:
 __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
+    "Runtime",
 ]

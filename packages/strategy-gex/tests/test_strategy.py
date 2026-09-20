@@ -4,8 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from power_market.types.signals import SignalType
 from power_market.types.market import MarketBar, TickerSymbol
+from power_market.types.signals import SignalType
 from power_trader_strategy_gex.gex_calculator import GEXCalculator
 from power_trader_strategy_gex.strategy import GEXStrategy
 
@@ -53,13 +53,13 @@ class TestGEXStrategy:
         assert "gex_environment" in signal.metadata
         assert signal.metadata["gex_environment"] in ["positive", "negative"]
 
-    async def test_initialize_and_cleanup(self) -> None:
+    async def test_start_and_stop(self) -> None:
         """Test lifecycle methods."""
         strategy = GEXStrategy(calculator=GEXCalculator())
 
         # Should not raise
-        await strategy.initialize()
-        await strategy.cleanup()
+        await strategy.start()
+        await strategy.stop()
 
     async def test_custom_parameters(self) -> None:
         """Test strategy with custom parameters."""

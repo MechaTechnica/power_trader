@@ -62,23 +62,22 @@ class Strategy(Protocol[T]):
         """
         ...
 
-    async def initialize(self) -> None:
+    async def start(self) -> None:
         """
-        Initialize strategy.
+        Prepare the strategy for use (part of the runtime-owned lifecycle).
 
-        Called once when strategy is loaded.
-        Use for:
+        Called once when the strategy is loaded. Use for:
         - Loading ML models
         - Warming up caches
         - Validating configuration
         """
         ...
 
-    async def cleanup(self) -> None:
+    async def stop(self) -> None:
         """
-        Cleanup strategy resources.
+        Release strategy resources (part of the runtime-owned lifecycle).
 
-        Called when strategy is unloaded or application shuts down.
+        Called when the strategy is unloaded or the application shuts down.
         """
         ...
 

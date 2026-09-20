@@ -12,6 +12,7 @@ from functools import lru_cache
 from typing import ClassVar, cast
 
 from power_framework.protocols.container import Container
+from power_framework.protocols.lifecycle import LifecycleRegistry
 
 #: Predicate applied to an entry point's name during discovery.
 EntryPointPredicate = Callable[[str], bool]
@@ -25,8 +26,12 @@ class Plugin(ABC):
     name: ClassVar[str | None] = None
 
     @abstractmethod
-    def register(self, container: Container) -> None:
-        """Register this plugin's services into ``container``."""
+    def register(self, container: Container, runtime: LifecycleRegistry) -> None:
+        """Register this plugin's services into ``container``.
+
+        Lifecycle components should additionally be registered into ``runtime``
+        in start order, so the runtime owns their ordering.
+        """
 
 
 @lru_cache(maxsize=1)
@@ -51,4 +56,4 @@ def _filter_entry_points(
         entries = cast("importlib.metadata.SelectableGroups", entry_points).get(
             group, importlib.metadata.EntryPoints()
         )
-    return [entry_point for entry_point in entries if predicate(entry_point.name)]
+    return [entry for entry in entries if predicate(entry.name)]

@@ -31,7 +31,7 @@ class InteractiveBrokersAdapter:
         self._client_id = client_id
         self._connected = False
 
-    async def connect(self) -> None:
+    async def start(self) -> None:
         """Establish connection to Interactive Brokers."""
         if self._connected:
             return
@@ -39,7 +39,7 @@ class InteractiveBrokersAdapter:
         await self._ib.connectAsync(self._host, self._port, self._client_id)
         self._connected = True
 
-    async def disconnect(self) -> None:
+    async def stop(self) -> None:
         """Close connection to Interactive Brokers."""
         if self._connected:
             self._ib.disconnect()

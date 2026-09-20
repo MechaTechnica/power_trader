@@ -4,8 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from power_market.types.signals import SignalType
 from power_market.types.market import MarketBar, TickerSymbol
+from power_market.types.signals import SignalType
 from power_trader_strategy_momentum.strategy import MomentumStrategy
 
 
@@ -81,13 +81,13 @@ class TestMomentumStrategy:
         signal = await strategy.analyze(bars)
         assert signal.signal_type == SignalType.HOLD
 
-    async def test_initialize_and_cleanup(self) -> None:
+    async def test_start_and_stop(self) -> None:
         """Test lifecycle methods."""
         strategy = MomentumStrategy()
         
         # Should not raise
-        await strategy.initialize()
-        await strategy.cleanup()
+        await strategy.start()
+        await strategy.stop()
 
 
 def create_test_bar(price: float) -> MarketBar:

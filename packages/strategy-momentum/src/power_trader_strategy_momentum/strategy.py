@@ -3,9 +3,8 @@
 from datetime import datetime
 
 from power_market.protocols.strategy import Strategy
-from power_market.types.signals import SignalType
 from power_market.types.market import MarketBar
-from power_market.types.signals import TradingSignal
+from power_market.types.signals import SignalType, TradingSignal
 
 
 class MomentumStrategy:
@@ -91,13 +90,13 @@ class MomentumStrategy:
             },
         )
 
-    async def initialize(self) -> None:
-        """Initialize strategy (called once on startup)."""
+    async def start(self) -> None:
+        """Prepare the strategy (called once on startup)."""
         # Could load ML models, warm up caches, etc.
         pass
 
-    async def cleanup(self) -> None:
-        """Cleanup strategy resources (called on shutdown)."""
+    async def stop(self) -> None:
+        """Release strategy resources (called on shutdown)."""
         # Could save state, close connections, etc.
         pass
 

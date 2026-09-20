@@ -4,9 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from power_market.protocols.strategy import Strategy
-from power_market.types.signals import SignalType
 from power_market.types.market import MarketBar
-from power_market.types.signals import TradingSignal
+from power_market.types.signals import SignalType, TradingSignal
 from power_trader_strategy_gex.gex_calculator import (GEXCalculator, GEXLevel,
                                                       OptionData)
 
@@ -262,13 +261,13 @@ class GEXStrategy:
         self._options_cache = mock_options
         return mock_options
 
-    async def initialize(self) -> None:
-        """Initialize strategy (called once on startup)."""
+    async def start(self) -> None:
+        """Prepare the strategy (called once on startup)."""
         # Could pre-load options data, warm up caches, etc.
         pass
 
-    async def cleanup(self) -> None:
-        """Cleanup strategy resources (called on shutdown)."""
+    async def stop(self) -> None:
+        """Release strategy resources (called on shutdown)."""
         self._options_cache.clear()
 
     def _create_signal(

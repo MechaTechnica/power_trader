@@ -6,8 +6,9 @@ from power_framework.application import ApplicationBuilder
 
 def cli() -> None:
     """Build and run the Power Day Trader application."""
-    app = ApplicationBuilder(PowerDayTraderApplication).build()
-    app.run()
+    runtime = ApplicationBuilder(PowerDayTraderApplication).build()
+    runtime.run()
+
 
 if __name__ == "__main__":
     cli()

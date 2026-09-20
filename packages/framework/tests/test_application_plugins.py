@@ -10,14 +10,14 @@ from power_framework.plugins import Plugin
 class FirstApplicationPlugin(Plugin):
     """Application plugin used to verify entry-point ordering."""
 
-    def register(self, container: object) -> None:
+    def register(self, container: object, runtime: object) -> None:
         """No wiring is required for entry-point selection tests."""
 
 
 class SecondApplicationPlugin(Plugin):
     """A second application plugin used to verify entry-point ordering."""
 
-    def register(self, container: object) -> None:
+    def register(self, container: object, runtime: object) -> None:
         """No wiring is required for entry-point selection tests."""
 
 

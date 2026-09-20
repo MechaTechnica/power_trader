@@ -1,14 +1,16 @@
 """Registry aggregating all loaded trading strategies."""
 
+from power_framework.protocols.lifecycle import Lifecycle
 from power_market.protocols.strategy import Strategy
 
 
-class StrategyRegistry:
-    """Holds every registered strategy and orchestrates their lifecycle.
+class StrategyRegistry(Lifecycle):
+    """Holds every registered strategy and drives their lifecycle.
 
     The container injects ``list[Strategy]`` (every ``Strategy[T]``
-    specialization) into this service, giving the application a single place to
-    enumerate strategies and run their shutdown hooks.
+    specialization) into this service. As a single :class:`Lifecycle`
+    component, the runtime starts/stops all strategies in a consistent order
+    rather than having the application coordinate them individually.
     """
 
     def __init__(self, strategies: list[Strategy]) -> None:
@@ -19,7 +21,12 @@ class StrategyRegistry:
         """All strategies, in registration order."""
         return self._strategies
 
-    async def cleanup(self) -> None:
-        """Run each strategy's ``cleanup`` hook."""
+    async def start(self) -> None:
+        """Start every strategy in registration order."""
         for strategy in self._strategies:
-            await strategy.cleanup()
+            await strategy.start()
+
+    async def stop(self) -> None:
+        """Stop every strategy in registration order."""
+        for strategy in self._strategies:
+            await strategy.stop()
