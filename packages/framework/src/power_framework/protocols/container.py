@@ -114,6 +114,27 @@ class Container(Protocol):
         """Register an already-constructed instance or a lazy factory."""
         ...
 
+    def override(self, interface: Any, instance: Any) -> None:
+        """Replace any registration for ``interface`` with an instance.
+
+        This is the *test seam* backing
+        ``TestApplicationBuilder.replace(Interface, Fake())``: it substitutes an
+        installed adapter for a fake without editing production wiring.
+        """
+        ...
+
+    def validate(self, *roots: Any) -> None:
+        """Validate that every root's dependency graph is fully resolvable.
+
+        Raises ``DependencyValidationError`` when a dependency has no
+        registration, with a human-readable tree in the message.
+        """
+        ...
+
+    def validate_report(self, *roots: Any) -> str:
+        """Return the validation report for ``*roots`` as a formatted string."""
+        ...
+
     @overload
     def resolve(self, interface: type[T]) -> T: ...
 

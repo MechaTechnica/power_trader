@@ -13,17 +13,36 @@ __version__ = "0.1.0"
 
 from power_core.bootstrap import create_container
 from power_core.container import Container
-from power_core.exceptions import (ApplicationError, ConfigurationError,
-                                   ConnectionError, DIError, PluginError)
+from power_core.exceptions import (
+                                   ApplicationError,
+                                   ConfigurationError,
+                                   ConnectionError,
+                                   DependencyError,
+                                   DependencyValidationError,
+                                   DIError,
+                                   DomainError,
+                                   FrameworkError,
+                                   InfrastructureError,
+                                   LifecycleError,
+                                   PluginError,
+                                   StrategyError,
+)
 from power_framework.protocols.container import Lifetime
 
 __all__ = [
-    "ApplicationError",
-    "ConfigurationError",
-    "ConnectionError",
-    "Container",
-    "DIError",
-    "Lifetime",
-    "PluginError",
-    "create_container",
-]
+                                   "ApplicationError",
+                                   "ConfigurationError",
+                                   "ConnectionError",
+                                   "Container",
+                                   "DIError",
+                                   "DependencyError",
+                                   "DependencyValidationError",
+                                   "DomainError",
+                                   "FrameworkError",
+                                   "InfrastructureError",
+                                   "LifecycleError",
+                                   "Lifetime",
+                                   "PluginError",
+                                   "StrategyError",
+                                   "create_container",
+ ]

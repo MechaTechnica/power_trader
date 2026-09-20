@@ -4,10 +4,12 @@ import asyncio
 from collections.abc import Callable
 from typing import Any
 
+from power_framework.exceptions import (DependencyError, LifecycleError,
+                                        PluginError)
 from power_framework.plugins import (Plugin, _filter_entry_points,
                                      _get_entry_points)
 from power_framework.protocols.container import Container
-from power_framework.protocols.lifecycle import Lifecycle, LifecycleRegistry
+from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.settings import load_settings
 
 PLUGIN_GROUP = "power.plugins"
@@ -56,6 +58,11 @@ class Runtime(LifecycleRegistry):
         """Register a lifecycle component type to be resolved and driven."""
         self._component_types.append(component_type)
 
+    @property
+    def component_types(self) -> list[type[Any]]:
+        """The lifecycle component types in start order (a copy)."""
+        return list(self._component_types)
+
     def attach(self, application: ApplicationBase) -> None:
         """Attach the resolved application as the final lifecycle component."""
         self._application = application
@@ -64,22 +71,40 @@ class Runtime(LifecycleRegistry):
     def application(self) -> ApplicationBase:
         application = self._application
         if application is None:
-            raise RuntimeError("No application has been attached to the runtime.")
+            raise LifecycleError("No application has been attached to the runtime.")
         return application
 
     async def start(self) -> None:
         """Start every component in dependency order, then the application."""
         for component_type in self._component_types:
             component = self._container.resolve(component_type)
-            await component.start()
-        await self.application.start()
+            try:
+                await component.start()
+            except Exception as exc:
+                raise LifecycleError(
+                    f"Failed to start component "
+                    f"'{getattr(component_type, '__name__', str(component_type))}': {exc}"
+                ) from exc
+        try:
+            await self.application.start()
+        except Exception as exc:
+            raise LifecycleError(f"Failed to start application: {exc}") from exc
 
     async def stop(self) -> None:
         """Stop the application first, then components in reverse order."""
-        await self.application.stop()
+        try:
+            await self.application.stop()
+        except Exception as exc:
+            raise LifecycleError(f"Failed to stop application: {exc}") from exc
         for component_type in reversed(self._component_types):
             component = self._container.resolve(component_type)
-            await component.stop()
+            try:
+                await component.stop()
+            except Exception as exc:
+                raise LifecycleError(
+                    f"Failed to stop component "
+                    f"'{getattr(component_type, '__name__', str(component_type))}': {exc}"
+                ) from exc
 
     def run(self) -> None:
         """Start the runtime, run the application, then stop the runtime."""
@@ -99,18 +124,18 @@ class ApplicationBootstrapper:
     application is resolved and attached to the runtime.
     """
 
-    def _load_core_entry_point(self) -> Callable[[], Container]:
+    def _load_core_entry_point(self) -> Callable[..., Container]:
         """Discover power-core's container factory from the shared extension-point group."""
         entry_points = _get_entry_points()
         core_matches = _filter_entry_points(entry_points, PLUGIN_GROUP, lambda name: name == CORE_NAME)
 
         if not core_matches:
-            raise RuntimeError(
+            raise DependencyError(
                 "No framework runtime found. Install 'power-core' and ensure it "
                 f"registers the '{PLUGIN_GROUP}' entry point named '{CORE_NAME}'."
             )
         if len(core_matches) > 1:
-            raise RuntimeError(
+            raise DependencyError(
                 f"Multiple '{CORE_NAME}' entry points found in group "
                 f"'{PLUGIN_GROUP}'. Only one core runtime may be installed."
             )
@@ -132,7 +157,7 @@ class ApplicationBootstrapper:
         for entry_point in sorted(plugin_entries, key=lambda candidate: candidate.name):
             plugin_class = entry_point.load()
             if not isinstance(plugin_class, type) or not issubclass(plugin_class, Plugin):
-                raise TypeError(
+                raise PluginError(
                     f"Plugin entry point '{entry_point.name}' must expose a Plugin subclass"
                 )
             plugins.add(plugin_class)
@@ -142,19 +167,111 @@ class ApplicationBootstrapper:
         """Instantiate one instance of every installed plugin."""
         return [plugin_class() for plugin_class in self._load_plugins()]
 
-    def _load_core_container(self) -> Container:
-        """Ask the runtime (power-core) for a configured container."""
+    def _load_core_container(
+        self, framework_overrides: dict[Any, Any] | None = None
+    ) -> Container:
+        """Ask the runtime (power-core) for a configured container.
+
+        ``framework_overrides`` replaces framework-supplied services (event bus,
+        metrics, tracer, ...) *before* plugins wire, so plugins resolve the
+        substitutes. This is the seam the test harness uses for captured
+        telemetry/events.
+        """
         core_entry_point = self._load_core_entry_point()
+        if framework_overrides:
+            return core_entry_point(framework_overrides)
         return core_entry_point()
 
-    def bootstrap(self, application_class: type[ApplicationBase]) -> Runtime:
-        """Build the container, register plugins, resolve and attach the app."""
-        container = self._load_core_container()
+    def assemble(
+        self,
+        application_class: type[ApplicationBase],
+        *,
+        overrides: list[tuple[Any, Any]] | None = None,
+        framework_overrides: dict[Any, Any] | None = None,
+    ) -> tuple[Container, Runtime]:
+        """Run the bootstrap phases up to (but excluding) application construction.
+
+        Bootstrap is explicitly phased so the container is never exposed to the
+        application before wiring is complete:
+
+        1. **Discover** plugins (and the runtime entry point).
+        2. **Create the container** (the runtime registers the framework services:
+           logging, configuration, telemetry, health, events).
+        3. **Register framework overrides** — substituted *before* plugins wire,
+           so plugins resolve the fakes (captured telemetry/events).
+        4. **Register modules** — load each plugin's settings, then let it register
+           its application services and lifecycle components.
+        5. **Register the application** as the composition root.
+        6. **Apply module overrides** — substitutes for adapters the plugins
+           themselves registered.
+
+        The caller is then responsible for validating the dependency graph and
+        constructing the application. This keeps module wiring and application
+        construction strictly ordered and independently testable.
+        """
+        container = self._load_core_container(framework_overrides)
         runtime = Runtime(container)
+
         for plugin in self._initialize_plugins():
             self._register_plugin_settings(container, plugin)
             plugin.register(container, runtime)
+
         container.register(application_class, application_class)
+
+        for interface, instance in overrides or []:
+            container.override(interface, instance)
+
+        return container, runtime
+
+    def validate(
+        self,
+        application_class: type[ApplicationBase],
+        *,
+        overrides: list[tuple[Any, Any]] | None = None,
+        framework_overrides: dict[Any, Any] | None = None,
+    ) -> None:
+        """Validate the application's dependency graph before construction.
+
+        Raises:
+            DependencyValidationError: If the application or any lifecycle
+                component has an unsatisfiable dependency, with a tree report.
+        """
+        container, runtime = self.assemble(
+            application_class,
+            overrides=overrides,
+            framework_overrides=framework_overrides,
+        )
+        roots = [application_class, *runtime.component_types]
+        container.validate(*roots)
+
+    def bootstrap(
+        self,
+        application_class: type[ApplicationBase],
+        *,
+        validate: bool = False,
+        overrides: list[tuple[Any, Any]] | None = None,
+        framework_overrides: dict[Any, Any] | None = None,
+    ) -> Runtime:
+        """Assemble the application and attach it to the runtime.
+
+        Args:
+            application_class: The application type to construct and run.
+            validate: When ``True``, validate the dependency graph after wiring
+                and before construction (fail fast with a tree report).
+            overrides: Optional ``(interface, instance)`` pairs applied after
+                module wiring (the test seam for replacing adapters with fakes).
+            framework_overrides: Optional ``interface -> instance`` map applied
+                before module wiring (substitutes the framework's event bus,
+                metrics, tracer, etc. so plugins resolve the fakes).
+        """
+        container, runtime = self.assemble(
+            application_class,
+            overrides=overrides,
+            framework_overrides=framework_overrides,
+        )
+        if validate:
+            roots = [application_class, *runtime.component_types]
+            container.validate(*roots)
         runtime.attach(container.resolve(application_class))
         return runtime
 
@@ -174,15 +291,33 @@ class ApplicationBootstrapper:
 
 
 class ApplicationBuilder:
-    """Fluent builder that assembles an application into a managed runtime."""
+    """Fluent builder that assembles an application into a managed runtime.
 
-    def __init__(self, application_class: type[ApplicationBase]) -> None:
+    ``ApplicationBuilder(MyApplication).build()`` works out of the box: the
+    runtime supplies sensible defaults for logging, configuration, telemetry,
+    health, lifecycle, and error handling, so teams only override what they need.
+    """
+
+    def __init__(self, application_class: type[ApplicationBase], *, validate: bool = False) -> None:
         self._application_class = application_class
+        self._validate = validate
+
+    def validate(self) -> ApplicationBuilder:
+        """Validate the dependency graph, returning ``self`` for chaining.
+
+        Raises:
+            DependencyValidationError: If the graph is incomplete, with a tree
+                showing each dependency as ``✓`` or ``✗ missing``.
+        """
+        ApplicationBootstrapper().validate(self._application_class)
+        return self
 
     def build(self) -> Runtime:
         """Build the application and wrap it in a lifecycle-owning runtime."""
         app_bootstrapper = ApplicationBootstrapper()
-        return app_bootstrapper.bootstrap(self._application_class)
+        return app_bootstrapper.bootstrap(
+            self._application_class, validate=self._validate
+        )
 
 
 __all__ = [

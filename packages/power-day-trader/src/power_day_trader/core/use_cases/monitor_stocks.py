@@ -1,7 +1,9 @@
 """Monitor stocks use case - core business logic."""
 
 from power_day_trader.core.strategy_registry import StrategyRegistry
+from power_framework.events import EventBus
 from power_framework.protocols.output import OutputPresenter
+from power_market.events import MarketDataReceived, SignalGenerated
 from power_market.protocols.data import MarketDataProvider
 from power_market.protocols.output import SignalPresenter
 from power_market.protocols.strategy import SignalAggregator
@@ -28,6 +30,8 @@ class MonitorStocksUseCase:
         aggregator: SignalAggregator,
         output: OutputPresenter,
         signal_presenter: SignalPresenter,
+        *,
+        event_bus: EventBus,
     ) -> None:
         """Inject dependencies through constructor (ports)."""
         self._data_provider = data_provider
@@ -35,6 +39,7 @@ class MonitorStocksUseCase:
         self._aggregator = aggregator
         self._output = output
         self._signal_presenter = signal_presenter
+        self._event_bus = event_bus
 
     async def execute(
         self,
@@ -52,6 +57,12 @@ class MonitorStocksUseCase:
 
         # Stream market data and analyze
         async for bar in self._data_provider.stream_bars(symbols, interval):
+            # Publish the domain fact that a bar arrived, so decoupled handlers
+            # (audit, analytics, persistence) can react without coupling here.
+            await self._event_bus.publish(
+                MarketDataReceived(symbol=bar.symbol, bar=bar)
+            )
+
             # Build a market snapshot for the strategies
             context = MarketContext(
                 symbol=bar.symbol,
@@ -65,6 +76,9 @@ class MonitorStocksUseCase:
                 try:
                     signal = await strategy.analyze(context)
                     signals.append(signal)
+                    await self._event_bus.publish(
+                        SignalGenerated(symbol=bar.symbol, signal=signal)
+                    )
                 except Exception as e:
                     await self._output.present_error(e)
 

@@ -1,37 +1,46 @@
-"""Application exceptions."""
+"""Runtime exceptions, aligned to the framework error model.
+
+``power-core`` builds concrete failures on top of the framework's taxonomy so
+applications can catch the framework types (``DependencyError``,
+``InfrastructureError``, ...) without importing runtime internals.
+"""
+
+from power_framework.exceptions import (
+    ApplicationError,
+    ConfigurationError,
+    DependencyError,
+    DependencyValidationError,
+    DomainError,
+    FrameworkError,
+    InfrastructureError,
+    LifecycleError,
+    PluginError,
+)
 
 
-class ApplicationError(Exception):
-    """Base exception for application errors."""
-
-    pass
+class DIError(DependencyError):
+    """Dependency-injection resolution or construction failed."""
 
 
-class ConfigurationError(ApplicationError):
-    """Raised when configuration is invalid or missing."""
-
-    pass
-
-
-class ConnectionError(ApplicationError):
-    """Raised when connection to external service fails."""
-
-    pass
-
-
-class PluginError(ApplicationError):
-    """Raised when plugin loading or execution fails."""
-
-    pass
+class ConnectionError(InfrastructureError):
+    """Connection to an external service failed (transient/retryable)."""
 
 
 class StrategyError(ApplicationError):
-    """Raised when strategy execution fails."""
-
-    pass
+    """A strategy raised an error during execution."""
 
 
-class DIError(ApplicationError):
-    """Raised when dependency injection fails."""
-
-    pass
+__all__ = [
+    "ApplicationError",
+    "ConfigurationError",
+    "ConnectionError",
+    "DIError",
+    "DependencyError",
+    "DependencyValidationError",
+    "DomainError",
+    "FrameworkError",
+    "InfrastructureError",
+    "LifecycleError",
+    "PluginError",
+    "StrategyError",
+]

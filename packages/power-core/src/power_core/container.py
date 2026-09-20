@@ -52,6 +52,8 @@ from dataclasses import dataclass, field
 from typing import Any, TypeVar, get_args, get_origin, overload
 
 from power_core.exceptions import DIError
+from power_core.validation import DependencyNode, render_report
+from power_framework.exceptions import DependencyValidationError
 from power_framework.protocols.container import Lifetime
 
 T = TypeVar("T")
@@ -248,6 +250,23 @@ class Container:
         reg.instance = instance
         self._registry[interface] = reg
 
+    def override(self, interface: type[Any], instance: Any) -> None:
+        """Replace any registration for ``interface`` with an instance.
+
+        This is the *test seam* backing
+        ``TestApplicationBuilder.replace(Interface, Fake())``: it removes an
+        existing binding (typically registered by a plugin) and substitutes the
+        supplied instance, so application teams can swap out real adapters for
+        fakes without editing production wiring.
+
+        Args:
+            interface: The type to replace (protocol or concrete class).
+            instance: The substitute instance (or a zero-arg factory).
+        """
+        self._registry.pop(interface, None)
+        self._scoped_cache.pop(interface, None)
+        self.register_instance(interface, instance)
+
     # ------------------------------------------------------------------
     # Resolution
     # ------------------------------------------------------------------
@@ -430,6 +449,81 @@ class Container:
             f"No registration for type '{_type_name(interface)}'. "
             f"Call container.register({_type_name(interface)}, <implementation>) first."
         )
+
+    def _find_registration(self, interface: Any) -> Registration | None:
+        """Return the registration for ``interface``, or ``None`` if absent."""
+        if interface in self._registry:
+            return self._registry[interface]
+        if self._parent is not None:
+            return self._parent._find_registration(interface)
+        return None
+
+    # ------------------------------------------------------------------
+    # Validation
+    # ------------------------------------------------------------------
+    def validate(self, *roots: Any) -> None:
+        """Validate that every root's dependency graph is fully resolvable.
+
+        Args:
+            *roots: The root types to validate. When omitted, every registered
+                interface is validated.
+
+        Raises:
+            DependencyValidationError: If any dependency (transitively) has no
+                registration, with a human-readable tree in the message.
+        """
+        if any(node.has_missing() for node in self._dependency_trees(roots)):
+            raise DependencyValidationError(self.validate_report(*roots))
+
+    def validate_report(self, *roots: Any) -> str:
+        """Return the validation report for ``*roots`` as a formatted string."""
+        return render_report(self._dependency_trees(roots))
+
+    def _dependency_trees(self, roots: tuple[Any, ...]) -> list[DependencyNode]:
+        """Build dependency trees for the requested roots (or all registrations)."""
+        if not roots:
+            roots = tuple(self._registry.keys())
+        return [self._build_dependency_tree(root, set()) for root in roots]
+
+    def _build_dependency_tree(self, interface: Any, path: set[Any]) -> DependencyNode:
+        """Build a :class:`DependencyNode` tree for ``interface`` and its deps."""
+        name = _type_name(interface)
+
+        if interface in path:
+            # Cycle guard: already being walked; treat as a satisfied boundary.
+            return DependencyNode(name=name)
+
+        if get_origin(interface) in _COLLECTION_ORIGINS:
+            # Collections resolve via resolve_all; validating their item type is
+            # not necessary (an empty set is valid).
+            return DependencyNode(name=name)
+
+        reg = self._find_registration(interface)
+        if reg is None:
+            return DependencyNode(name=name, missing=True)
+
+        impl = reg.implementation
+        if impl is None or not isinstance(impl, type):
+            # Already-constructed instances and factory callables have no
+            # introspectable constructor dependencies.
+            return DependencyNode(name=name)
+
+        try:
+            params = self._inspect_params(impl)
+        except (TypeError, ValueError):
+            return DependencyNode(name=name, missing=True)
+
+        path.add(interface)
+        children: list[DependencyNode] = []
+        for param_name, annotation in params.items():
+            if annotation in (Any, inspect.Parameter.empty) or annotation is None:
+                children.append(
+                    DependencyNode(name=f"{param_name}: untyped", missing=True)
+                )
+                continue
+            children.append(self._build_dependency_tree(annotation, path))
+        path.discard(interface)
+        return DependencyNode(name=name, children=children)
 
     def _construct(
         self,

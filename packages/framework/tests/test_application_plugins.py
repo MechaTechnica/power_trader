@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass
 
-from power_framework.application import (CORE_NAME, PLUGIN_GROUP,
-                                         ApplicationBootstrapper)
+from pydantic_settings import SettingsConfigDict
+
+from power_framework.application import CORE_NAME, PLUGIN_GROUP, ApplicationBootstrapper
 from power_framework.plugins import Plugin
 from power_framework.settings import Settings
-from pydantic_settings import SettingsConfigDict
 
 
 class FirstApplicationPlugin(Plugin):

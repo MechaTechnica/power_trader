@@ -36,13 +36,13 @@ class HealthStatus:
     details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def healthy(cls, name: str, message: str | None = None) -> "HealthStatus":
+    def healthy(cls, name: str, message: str | None = None) -> HealthStatus:
         return cls(name=name, status=Status.HEALTHY, message=message)
 
     @classmethod
     def unhealthy(
         cls, name: str, message: str | None = None, **details: Any
-    ) -> "HealthStatus":
+    ) -> HealthStatus:
         return cls(name=name, status=Status.UNHEALTHY, message=message, details=details)
 
 
@@ -76,7 +76,7 @@ class HealthCheckRegistry:
         for check in self._checks:
             try:
                 results.append(await check.check())
-            except Exception as exc:  # noqa: BLE001 - a failing probe must not crash health
+            except Exception as exc:
                 results.append(
                     HealthStatus.unhealthy(check.name, str(exc))
                 )

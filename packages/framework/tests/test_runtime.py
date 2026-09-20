@@ -1,7 +1,6 @@
 """Tests for the runtime-owned lifecycle manager."""
 
 from power_framework.application import ApplicationBase, Runtime
-from power_framework.protocols.lifecycle import Lifecycle
 
 
 class _RecordingComponent:

@@ -3,10 +3,14 @@
 import json
 import logging
 
-from power_framework.observability import (InMemoryMetrics, InMemoryTracer,
-                                           StructuredLogger, correlation_scope,
-                                           current_correlation_id,
-                                           current_trace_id)
+from power_framework.observability import (
+    InMemoryMetrics,
+    InMemoryTracer,
+    StructuredLogger,
+    correlation_scope,
+    current_correlation_id,
+    current_trace_id,
+)
 
 
 def test_structured_logger_injects_context(caplog):
@@ -14,9 +18,8 @@ def test_structured_logger_injects_context(caplog):
         service="test-svc", environment="production", version="1.2.3"
     )
 
-    with caplog.at_level(logging.INFO):
-        with correlation_scope("corr-1", "trace-1"):
-            logger.info("order_submitted", order_id="42", instrument="AAPL")
+    with caplog.at_level(logging.INFO), correlation_scope("corr-1", "trace-1"):
+        logger.info("order_submitted", order_id="42", instrument="AAPL")
 
     assert len(caplog.records) == 1
     payload = json.loads(caplog.records[0].getMessage())

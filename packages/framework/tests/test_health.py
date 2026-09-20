@@ -1,8 +1,14 @@
 """Tests for the framework health/readiness capability."""
 
 import pytest
-from power_framework.health import (HealthCheckRegistry, HealthReport,
-                                    HealthService, HealthStatus, Status)
+
+from power_framework.health import (
+    HealthCheckRegistry,
+    HealthReport,
+    HealthService,
+    HealthStatus,
+    Status,
+)
 
 
 class _HealthyCheck:

@@ -22,11 +22,12 @@ import logging
 import time
 import uuid
 from collections import defaultdict
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Iterator, Protocol
+from datetime import UTC, datetime
+from typing import Any, Protocol
 
 # ---------------------------------------------------------------------------
 # Correlation / trace context
@@ -110,7 +111,7 @@ class StructuredLogger:
 
     def _emit(self, level: int, event: str, fields: dict[str, Any]) -> None:
         record: dict[str, Any] = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "service": self._service,
             "environment": self._environment,
             "version": self._version,
@@ -218,7 +219,7 @@ class Span:
         if self.end_time is None:
             self.end_time = time.monotonic()
 
-    def __enter__(self) -> "Span":
+    def __enter__(self) -> Span:
         self._token = _trace_id_var.set(self.trace_id)
         return self
 

@@ -3,6 +3,7 @@
 from typing import Protocol
 
 import pytest
+
 from power_core.container import Container
 from power_core.exceptions import DIError
 from power_framework.protocols.container import Lifetime

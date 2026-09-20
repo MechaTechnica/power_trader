@@ -9,8 +9,12 @@ authors = [
     { name = "Power Trader Team" }
 ]
 
-# Pure interfaces and value types only - no runtime dependencies.
-dependencies = []
+dependencies = [
+    "power-framework",
+]
+
+[tool.uv.sources]
+power-framework = { workspace = true }
 
 [project.optional-dependencies]
 dev = [

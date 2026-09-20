@@ -20,8 +20,12 @@ from enum import Enum
 from typing import ClassVar, TypeVar
 
 from pydantic import Field
-from pydantic_settings import (BaseSettings, JsonConfigSettingsSource,
-                               PydanticBaseSettingsSource, SettingsConfigDict)
+from pydantic_settings import (
+    BaseSettings,
+    JsonConfigSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 
 class Environment(str, Enum):

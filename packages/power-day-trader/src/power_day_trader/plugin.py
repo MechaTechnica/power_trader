@@ -1,22 +1,21 @@
 """Power Day Trader application plugin."""
 
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
-from power_day_trader.adapters.secondary.ib_provider import \
-    InteractiveBrokersAdapter
-from power_day_trader.adapters.secondary.signal_aggregator import \
-    WeightedAverageAggregator
-from power_day_trader.adapters.secondary.terminal_output import \
-    TerminalOutputAdapter
+from power_day_trader.adapters.secondary.ib_provider import InteractiveBrokersAdapter
+from power_day_trader.adapters.secondary.signal_aggregator import WeightedAverageAggregator
+from power_day_trader.adapters.secondary.terminal_output import TerminalOutputAdapter
 from power_day_trader.config.settings import PowerTraderSettings
+from power_day_trader.core.event_handlers import SignalToOrderHandler
 from power_day_trader.core.strategy_registry import StrategyRegistry
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
-from power_day_trader.health import (IBConnectionCheck, MarketDataCheck,
-                                     StrategiesLoadedCheck)
+from power_day_trader.health import IBConnectionCheck, MarketDataCheck, StrategiesLoadedCheck
+from power_framework.events import EventBus
 from power_framework.health import HealthCheckRegistry
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container
 from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.protocols.output import OutputPresenter
+from power_market.events import SignalGenerated
 from power_market.protocols.data import MarketDataProvider
 from power_market.protocols.output import SignalPresenter
 from power_market.protocols.strategy import SignalAggregator
@@ -49,6 +48,12 @@ class PowerDayTraderPlugin(Plugin):
         container.register(StrategyRegistry, StrategyRegistry)
         container.register(MonitorStocksUseCase, MonitorStocksUseCase)
         container.register(CLIAdapter, CLIAdapter)
+
+        # Event-driven order flow: translate generated signals into the order
+        # lifecycle (requested → submitted → filled/rejected) without coupling
+        # the monitor use case to order execution.
+        event_bus = container.resolve(EventBus)
+        event_bus.subscribe(SignalGenerated, SignalToOrderHandler(event_bus))
 
         # Lifecycle ordering: infrastructure first, then domain services.
         runtime.register(MarketDataProvider)

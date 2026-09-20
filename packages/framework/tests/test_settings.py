@@ -1,8 +1,13 @@
 """Tests for the framework configuration capability."""
 
-from power_framework.settings import (Environment, FrameworkSettings, LogLevel,
-                                      Settings, TelemetrySettings,
-                                      load_settings)
+from power_framework.settings import (
+    Environment,
+    FrameworkSettings,
+    LogLevel,
+    Settings,
+    TelemetrySettings,
+    load_settings,
+)
 
 
 def test_framework_settings_defaults():
