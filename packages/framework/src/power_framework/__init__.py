@@ -9,8 +9,7 @@ concrete runtime implementations live in ``power-core``.
 
 __version__ = "0.1.0"
 
-from power_framework.application import (ApplicationBase, ApplicationBuilder,
-                                         ApplicationModel)
+from power_framework.application import ApplicationBase, ApplicationBuilder
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container
 from power_framework.settings import CoreSettings, JsonFileSettings
@@ -18,7 +17,6 @@ from power_framework.settings import CoreSettings, JsonFileSettings
 __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
-    "ApplicationModel",
     "Container",
     "CoreSettings",
     "JsonFileSettings",

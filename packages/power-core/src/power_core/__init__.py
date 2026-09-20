@@ -11,17 +11,17 @@ Applications should depend on ``power_framework`` (protocols,
 
 __version__ = "0.1.0"
 
-from power_core.bootstrap import create_application
+from power_core.bootstrap import create_container
 from power_core.container import Container
 from power_core.exceptions import (ApplicationError, ConfigurationError,
                                    ConnectionError, DIError, PluginError)
 
 __all__ = [
-                                   "ApplicationError",
-                                   "ConfigurationError",
-                                   "ConnectionError",
-                                   "Container",
-                                   "DIError",
-                                   "PluginError",
-                                   "create_application",
+    "ApplicationError",
+    "ConfigurationError",
+    "ConnectionError",
+    "Container",
+    "DIError",
+    "PluginError",
+    "create_container",
 ]

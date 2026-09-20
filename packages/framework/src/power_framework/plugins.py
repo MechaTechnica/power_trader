@@ -1,8 +1,6 @@
 """Plugin base class.
 
-A plugin encapsulates a strategy's or application's *infrastructure wiring*:
-it registers services (and itself) into the container it is given by the
-runtime.
+A plugin is a component loaded dynamically that is part of a larger system.
 """
 
 from __future__ import annotations

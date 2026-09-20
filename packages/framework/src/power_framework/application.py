@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 
 from power_framework.plugins import (Plugin, _filter_entry_points,
                                      _get_entry_points)
@@ -11,33 +10,14 @@ PLUGIN_GROUP = "power.plugins"
 CORE_NAME = "power-core"
 
 
-@dataclass
-class ApplicationModel:
-    """The model for an application, containing the container and the constructed application."""
-
-    container: Container
-    application: ApplicationBase
-
 class ApplicationBase:
     """Base class for an application's lifecycle and run entry point.
 
-    Subclasses override ``on_startup``, ``on_shutdown``, and ``run``. The
-    framework supplies the container through which services can be resolved.
+    Subclasses declare their dependencies as constructor arguments and override
+    ``on_startup``, ``on_shutdown``, and ``run``. The framework resolves and
+    injects those dependencies automatically, so an application never needs to
+    know that a DI container exists.
     """
-
-    def __init__(self) -> None:
-        self._application_model: ApplicationModel | None = None
-
-    @property
-    def application_model(self) -> ApplicationModel:
-        application_model = self._application_model
-        if application_model is None:
-            raise RuntimeError("Application has not been built; no application model available.")
-        return application_model
-
-    @application_model.setter
-    def application_model(self, application_model: ApplicationModel) -> None:
-        self._application_model = application_model
 
     async def on_startup(self) -> None:
         return None
@@ -50,15 +30,16 @@ class ApplicationBase:
 
 
 class ApplicationBootstrapper:
-    """Assemble plugins, a runtime, and an application instance.
+    """Assemble plugins, a runtime container, and an application instance.
 
     This class bridges the framework's plugin discovery with the concrete
-    runtime (``power-core``) discovered via entry points, reading the built
-    container back into the application.
+    runtime (``power-core``) discovered via entry points. Plugins are registered
+    into the container first, then the application is resolved from the
+    container so its constructor dependencies are injected.
     """
 
-    def _load_core_entry_point(self) -> Callable[[type[ApplicationBase]], ApplicationModel]:
-        """Discover power-core's factory from the shared extension-point group."""
+    def _load_core_entry_point(self) -> Callable[[], Container]:
+        """Discover power-core's container factory from the shared extension-point group."""
         entry_points = _get_entry_points()
         core_matches = _filter_entry_points(entry_points, PLUGIN_GROUP, lambda name: name == CORE_NAME)
 
@@ -100,21 +81,22 @@ class ApplicationBootstrapper:
         """Instantiate one instance of every installed plugin."""
         return [plugin_class() for plugin_class in self._load_plugins()]
 
-    def _load_core(self, application_class: type[ApplicationBase]) -> ApplicationModel:
+    def _load_core_container(self) -> Container:
+        """Ask the runtime (power-core) for a configured container."""
         core_entry_point = self._load_core_entry_point()
-        # The core runtime is responsible for creating the concrete
-        # Application instance and wiring the ApplicationModel into it.
-        return core_entry_point(application_class)
+        return core_entry_point()
 
     def bootstrap(self, application_class: type[ApplicationBase]) -> ApplicationBase:
-        """Build the runtime (in core), initialize plugins and return the created
-        application instance.
+        """Build the container, register plugins, then resolve the application.
+
+        Plugins are registered before the application is resolved so the
+        application's constructor dependencies are available to the container.
         """
-        application_model = self._load_core(application_class)
-        application_model.application.application_model = application_model
+        container = self._load_core_container()
         for plugin in self._initialize_plugins():
-            plugin.register(application_model.container)
-        return application_model.application
+            plugin.register(container)
+        container.register(application_class, application_class)
+        return container.resolve(application_class)
 
 
 class ApplicationBuilder:
@@ -132,5 +114,4 @@ class ApplicationBuilder:
 __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
-    "ApplicationModel",
 ]

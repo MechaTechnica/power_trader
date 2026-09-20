@@ -3,8 +3,7 @@
 from dataclasses import dataclass
 
 from power_framework.application import (CORE_NAME, PLUGIN_GROUP,
-                                                _load_core_entry_point,
-                                                _load_plugins)
+                                         ApplicationBootstrapper)
 from power_framework.plugins import Plugin
 
 
@@ -50,10 +49,11 @@ def test_runtime_is_loaded_from_core_in_the_shared_group(monkeypatch):
         return object()
 
     entries = FakeEntryPoints([FakeEntryPoint(CORE_NAME, runtime_factory)])
-    monkeypatch.setattr("importlib.metadata.entry_points", lambda: entries)
+    monkeypatch.setattr("power_framework.application._get_entry_points", lambda: entries)
 
-    assert _load_core_entry_point() is runtime_factory
-    assert entries.calls == [(PLUGIN_GROUP, CORE_NAME)]
+    bootstrapper = ApplicationBootstrapper()
+    assert bootstrapper._load_core_entry_point() is runtime_factory
+    assert entries.calls == [(PLUGIN_GROUP, None)]
 
 
 def test_load_plugin_factories_excludes_core_and_loads_all_plugins(monkeypatch):
@@ -65,12 +65,12 @@ def test_load_plugin_factories_excludes_core_and_loads_all_plugins(monkeypatch):
             FakeEntryPoint("application.first", FirstApplicationPlugin),
         ]
     )
-    monkeypatch.setattr("importlib.metadata.entry_points", lambda: entries)
+    monkeypatch.setattr("power_framework.application._get_entry_points", lambda: entries)
 
-    plugins = _load_plugins()
+    bootstrapper = ApplicationBootstrapper()
+    plugins = bootstrapper._load_plugins()
 
     # ``core`` excluded; `SecondApplicationPlugin` appears under two entry
     # points but is deduplicated by type.
     assert plugins == {FirstApplicationPlugin, SecondApplicationPlugin}
     assert entries.calls == [(PLUGIN_GROUP, None)]
-

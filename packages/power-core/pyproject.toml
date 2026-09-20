@@ -15,7 +15,7 @@ dependencies = [
 power-framework = { workspace = true }
 
 [project.entry-points."power.plugins"]
-power-core = "power_core.bootstrap:create_application"
+power-core = "power_core.bootstrap:create_container"
 
 [project.optional-dependencies]
 dev = [
