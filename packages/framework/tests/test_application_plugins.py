@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from power_framework.application import (CORE_NAME, PLUGIN_GROUP,
                                          ApplicationBootstrapper)
 from power_framework.plugins import Plugin
+from power_framework.settings import Settings
+from pydantic_settings import SettingsConfigDict
 
 
 class FirstApplicationPlugin(Plugin):
@@ -42,6 +44,46 @@ class FakeEntryPoints:
     def select(self, *, group: str, name: str | None = None) -> list[FakeEntryPoint]:
         self.calls.append((group, name))
         return [entry for entry in self.entries if name is None or entry.name == name]
+
+
+def test_register_plugin_settings_loads_and_registers_settings():
+    class AppSettings(Settings):
+        model_config = SettingsConfigDict(env_prefix="TEST_APP_")
+
+        foo: str = "bar"
+
+    class ConfigPlugin(Plugin):
+        settings_class = AppSettings
+
+        def register(self, container: object, runtime: object) -> None:
+            """No wiring required for this test."""
+
+    registered: dict[type, object] = {}
+
+    class FakeContainer:
+        def register_instance(self, interface: type, instance: object) -> None:
+            registered[interface] = instance
+
+    ApplicationBootstrapper._register_plugin_settings(FakeContainer(), ConfigPlugin())
+
+    assert AppSettings in registered
+    assert registered[AppSettings].foo == "bar"  # type: ignore[union-attr]
+
+
+def test_register_plugin_settings_is_noop_without_settings_class():
+    class NoSettingsPlugin(Plugin):
+        def register(self, container: object, runtime: object) -> None:
+            """No wiring required for this test."""
+
+    registered: dict[type, object] = {}
+
+    class FakeContainer:
+        def register_instance(self, interface: type, instance: object) -> None:
+            registered[interface] = instance
+
+    ApplicationBootstrapper._register_plugin_settings(FakeContainer(), NoSettingsPlugin())
+
+    assert registered == {}
 
 
 def test_runtime_is_loaded_from_core_in_the_shared_group(monkeypatch):

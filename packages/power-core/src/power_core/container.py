@@ -77,19 +77,6 @@ def _origin_of(t: Any) -> Any:
     return origin if origin is not None else t
 
 
-def _coerce_lifetime(lifetime: Lifetime | str) -> Lifetime:
-    """Normalise a ``Lifetime`` (or a legacy string) to the enum form."""
-    if isinstance(lifetime, Lifetime):
-        return lifetime
-    try:
-        return Lifetime(lifetime)
-    except ValueError:
-        valid = ", ".join(f"'{member.value}'" for member in Lifetime)
-        raise DIError(
-            f"Invalid lifetime '{lifetime}' (expected one of: {valid})"
-        ) from None
-
-
 #: Generic collection origins auto-resolved as a list of their items.
 _COLLECTION_ORIGINS = (list, tuple, set, frozenset)
 
@@ -153,7 +140,7 @@ class Container:
         interface: type[Any],
         implementation: type[Any],
         *,
-        lifetime: Lifetime | str = Lifetime.SINGLETON,
+        lifetime: Lifetime = Lifetime.SINGLETON,
         **kwargs: Any,
     ) -> None:
         """Register a concrete class (constructor-injected)."""
@@ -165,7 +152,7 @@ class Container:
         interface: type[Any],
         implementation: Callable[..., Any],
         *,
-        lifetime: Lifetime | str = Lifetime.SINGLETON,
+        lifetime: Lifetime = Lifetime.SINGLETON,
         **kwargs: Any,
     ) -> None:
         """Register a factory callable, e.g. ``lambda: make_thing()``."""
@@ -176,7 +163,7 @@ class Container:
         self,
         interface: type[Any],
         *,
-        lifetime: Lifetime | str = Lifetime.SINGLETON,
+        lifetime: Lifetime = Lifetime.SINGLETON,
     ) -> None:
         """Register a concrete type to itself."""
         ...
@@ -186,7 +173,7 @@ class Container:
         interface: type[Any],
         implementation: Implementation = None,
         *,
-        lifetime: Lifetime | str = Lifetime.SINGLETON,
+        lifetime: Lifetime = Lifetime.SINGLETON,
         **kwargs: Any,
     ) -> None:
         """Register an implementation against an interface type.
@@ -200,8 +187,7 @@ class Container:
             implementation: The class/factory used to build the instance. Defaults to
                 ``interface`` when omitted (registering a concrete type).
             lifetime: ``Lifetime.SINGLETON``, ``Lifetime.SCOPED``, or
-                ``Lifetime.TRANSIENT`` (legacy ``"singleton"``/``"scoped"``/
-                ``"transient"`` strings are also accepted).
+                ``Lifetime.TRANSIENT``.
             **kwargs: Extra keyword arguments passed to the constructor/factory.
 
         Raises:
@@ -210,11 +196,14 @@ class Container:
         if interface in self._registry:
             raise DIError(f"Type '{_type_name(interface)}' is already registered")
 
+        if not isinstance(lifetime, Lifetime):
+            raise DIError(f"Invalid lifetime {lifetime!r}; expected a Lifetime member")
+
         impl = implementation if implementation is not None else interface
         self._registry[interface] = Registration(
             interface=interface,
             implementation=impl,
-            lifetime=_coerce_lifetime(lifetime),
+            lifetime=lifetime,
             extra_kwargs=kwargs,
         )
 

@@ -8,6 +8,7 @@ from power_framework.plugins import (Plugin, _filter_entry_points,
                                      _get_entry_points)
 from power_framework.protocols.container import Container
 from power_framework.protocols.lifecycle import Lifecycle, LifecycleRegistry
+from power_framework.settings import load_settings
 
 PLUGIN_GROUP = "power.plugins"
 CORE_NAME = "power-core"
@@ -151,10 +152,25 @@ class ApplicationBootstrapper:
         container = self._load_core_container()
         runtime = Runtime(container)
         for plugin in self._initialize_plugins():
+            self._register_plugin_settings(container, plugin)
             plugin.register(container, runtime)
         container.register(application_class, application_class)
         runtime.attach(container.resolve(application_class))
         return runtime
+
+    @staticmethod
+    def _register_plugin_settings(container: Container, plugin: Plugin) -> None:
+        """Load a plugin's declared settings and register them in the container.
+
+        Configuration is a framework capability: plugins declare their settings
+        type via ``Plugin.settings_class`` and the framework loads it (env +
+        JSON file) before the plugin wires anything up, so applications never
+        re-invent configuration loading.
+        """
+        settings_type = getattr(plugin, "settings_class", None)
+        if settings_type is None:
+            return
+        container.register_instance(settings_type, load_settings(settings_type))
 
 
 class ApplicationBuilder:

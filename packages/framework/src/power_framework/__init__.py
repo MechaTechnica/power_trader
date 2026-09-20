@@ -14,17 +14,23 @@ from power_framework.application import (ApplicationBase, ApplicationBuilder,
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container, Lifetime
 from power_framework.protocols.lifecycle import Lifecycle, LifecycleRegistry
-from power_framework.settings import CoreSettings, JsonFileSettings
+from power_framework.settings import (Environment, FrameworkSettings, LogLevel,
+                                      Settings, TelemetrySettings,
+                                      load_settings)
 
 __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
     "Container",
-    "CoreSettings",
-    "JsonFileSettings",
+    "Environment",
+    "FrameworkSettings",
     "Lifecycle",
     "LifecycleRegistry",
     "Lifetime",
+    "LogLevel",
     "Plugin",
     "Runtime",
+    "Settings",
+    "TelemetrySettings",
+    "load_settings",
 ]

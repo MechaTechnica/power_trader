@@ -13,6 +13,7 @@ from typing import ClassVar, cast
 
 from power_framework.protocols.container import Container
 from power_framework.protocols.lifecycle import LifecycleRegistry
+from power_framework.settings import Settings
 
 #: Predicate applied to an entry point's name during discovery.
 EntryPointPredicate = Callable[[str], bool]
@@ -24,6 +25,12 @@ class Plugin(ABC):
     """
 
     name: ClassVar[str | None] = None
+
+    #: Optional application settings model. When set, the framework loads it
+    #: (environment + JSON file) and registers it in the container *before*
+    #: calling :meth:`register`, so the plugin consumes configuration rather
+    #: than loading it itself.
+    settings_class: ClassVar[type[Settings] | None] = None
 
     @abstractmethod
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:

@@ -22,10 +22,14 @@ from power_market.protocols.strategy import SignalAggregator
 class PowerDayTraderPlugin(Plugin):
     """Power Day Trader application wiring."""
 
+    # Declared (not loaded) here; the framework loads it and registers it in
+    # the container before ``register`` is called.
+    settings_class = PowerTraderSettings
+
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:
-        """Register the application's settings, adapters, and use cases."""
-        app_settings: PowerTraderSettings = PowerTraderSettings.load()
-        container.register_instance(PowerTraderSettings, app_settings)
+        """Register the application's adapters and use cases."""
+        app_settings: PowerTraderSettings = container.resolve(PowerTraderSettings)
+
         container.register(OutputPresenter, TerminalOutputAdapter)
         container.register(SignalPresenter, TerminalOutputAdapter)
 

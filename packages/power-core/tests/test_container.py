@@ -147,13 +147,6 @@ def test_lifetime_enum_values():
     assert Lifetime.TRANSIENT.value == "transient"
 
 
-def test_legacy_string_lifetime_is_accepted():
-    container = Container()
-    container.register(Service, DefaultService, lifetime="scoped")
-    with container.scope() as scope:
-        assert scope.resolve(Service) is scope.resolve(Service)
-
-
 def test_scoped_instance_is_cached_per_scope_not_across_scopes():
     container = Container()
     container.register(Service, DefaultService, lifetime=Lifetime.SCOPED)
