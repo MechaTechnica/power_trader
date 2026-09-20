@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass
 
-from pydantic_settings import SettingsConfigDict
-
-from power_framework.application import CORE_NAME, PLUGIN_GROUP, ApplicationBootstrapper
+from power_framework.application import (CORE_GROUP, PLUGIN_GROUP,
+                                         ApplicationBootstrapper)
 from power_framework.plugins import Plugin
 from power_framework.settings import Settings
+from pydantic_settings import SettingsConfigDict
 
 
 class FirstApplicationPlugin(Plugin):
@@ -86,24 +86,23 @@ def test_register_plugin_settings_is_noop_without_settings_class():
     assert registered == {}
 
 
-def test_runtime_is_loaded_from_core_in_the_shared_group(monkeypatch):
+def test_runtime_is_loaded_from_core_in_its_own_group(monkeypatch):
     def runtime_factory(*_args: object) -> object:
         return object()
 
-    entries = FakeEntryPoints([FakeEntryPoint(CORE_NAME, runtime_factory)])
+    entries = FakeEntryPoints([FakeEntryPoint("power-core", runtime_factory)])
     monkeypatch.setattr("power_framework.application._get_entry_points", lambda: entries)
 
     bootstrapper = ApplicationBootstrapper()
     assert bootstrapper._load_core_entry_point() is runtime_factory
-    assert entries.calls == [(PLUGIN_GROUP, None)]
+    assert entries.calls == [(CORE_GROUP, None)]
 
 
-def test_load_plugin_factories_excludes_core_and_loads_all_plugins(monkeypatch):
+def test_load_plugin_factories_loads_all_plugins(monkeypatch):
     entries = FakeEntryPoints(
         [
             FakeEntryPoint("strategy.momentum", SecondApplicationPlugin),
             FakeEntryPoint("application.second", SecondApplicationPlugin),
-            FakeEntryPoint(CORE_NAME, object()),
             FakeEntryPoint("application.first", FirstApplicationPlugin),
         ]
     )
@@ -112,7 +111,7 @@ def test_load_plugin_factories_excludes_core_and_loads_all_plugins(monkeypatch):
     bootstrapper = ApplicationBootstrapper()
     plugins = bootstrapper._load_plugins()
 
-    # ``core`` excluded; `SecondApplicationPlugin` appears under two entry
-    # points but is deduplicated by type.
+    # ``SecondApplicationPlugin`` appears under two entry points but is
+    # deduplicated by type.
     assert plugins == {FirstApplicationPlugin, SecondApplicationPlugin}
     assert entries.calls == [(PLUGIN_GROUP, None)]

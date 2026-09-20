@@ -6,14 +6,14 @@ from typing import Any
 
 from power_framework.exceptions import (DependencyError, LifecycleError,
                                         PluginError)
-from power_framework.plugins import (Plugin, _filter_entry_points,
-                                     _get_entry_points)
+from power_framework.plugins import (Plugin, _get_entry_points,
+                                     _get_group_entry_points)
 from power_framework.protocols.container import Container
 from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.settings import load_settings
 
 PLUGIN_GROUP = "power.plugins"
-CORE_NAME = "power-core"
+CORE_GROUP = "power.core"
 
 
 class ApplicationBase:
@@ -125,33 +125,37 @@ class ApplicationBootstrapper:
     """
 
     def _load_core_entry_point(self) -> Callable[..., Container]:
-        """Discover power-core's container factory from the shared extension-point group."""
+        """Discover the installed runtime's container factory from its dedicated group.
+
+        Core runtimes register under their own group, so any compatible runtime
+        (``power-core`` today, a replacement tomorrow) is loaded without name
+        matching. Exactly one core runtime is expected at any time.
+        """
         entry_points = _get_entry_points()
-        core_matches = _filter_entry_points(entry_points, PLUGIN_GROUP, lambda name: name == CORE_NAME)
+        core_matches = _get_group_entry_points(entry_points, CORE_GROUP)
 
         if not core_matches:
             raise DependencyError(
-                "No framework runtime found. Install 'power-core' and ensure it "
-                f"registers the '{PLUGIN_GROUP}' entry point named '{CORE_NAME}'."
+                "No framework runtime found. Install a runtime such as "
+                f"'power-core' and ensure it registers a '{CORE_GROUP}' entry point."
             )
         if len(core_matches) > 1:
             raise DependencyError(
-                f"Multiple '{CORE_NAME}' entry points found in group "
-                f"'{PLUGIN_GROUP}'. Only one core runtime may be installed."
+                f"Multiple runtime entry points found in group '{CORE_GROUP}'. "
+                "Only one core runtime may be installed."
             )
 
         return core_matches[0].load()  # type: ignore[no-any-return]
 
     def _load_plugins(self) -> set[type[Plugin]]:
-        """Load and return every installed plugin class in the shared group.
+        """Load and return every installed plugin class in the plugins group.
 
-        The ``core`` entry point is the runtime factory rather than a plugin, so it
-        is excluded by name. Each loaded object must be a :class:`Plugin` subclass,
-        and duplicate registrations (the same plugin class under multiple entry
-        points) are returned only once.
+        Each loaded object must be a :class:`Plugin` subclass, and duplicate
+        registrations (the same plugin class under multiple entry points) are
+        returned only once.
         """
         entry_points = _get_entry_points()
-        plugin_entries = _filter_entry_points(entry_points, PLUGIN_GROUP, lambda name: name != CORE_NAME)
+        plugin_entries = _get_group_entry_points(entry_points, PLUGIN_GROUP)
 
         plugins: set[type[Plugin]] = set()
         for entry_point in sorted(plugin_entries, key=lambda candidate: candidate.name):

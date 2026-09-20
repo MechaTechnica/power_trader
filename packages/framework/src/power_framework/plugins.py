@@ -7,16 +7,12 @@ from __future__ import annotations
 
 import importlib.metadata
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from functools import lru_cache
 from typing import ClassVar, cast
 
 from power_framework.protocols.container import Container
 from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.settings import Settings
-
-#: Predicate applied to an entry point's name during discovery.
-EntryPointPredicate = Callable[[str], bool]
 
 
 class Plugin(ABC):
@@ -51,16 +47,15 @@ def _get_entry_points() -> importlib.metadata.EntryPoints | importlib.metadata.S
     return importlib.metadata.entry_points()
 
 
-def _filter_entry_points(
+def _get_group_entry_points(
     entry_points: importlib.metadata.EntryPoints | importlib.metadata.SelectableGroups,
     group: str,
-    predicate: EntryPointPredicate,
 ) -> list[importlib.metadata.EntryPoint]:
-    """Return the entry points in ``group`` whose name satisfies ``predicate``."""
+    """Return every entry point registered in ``group``."""
     if hasattr(entry_points, "select"):
         entries = entry_points.select(group=group)
     else:  # Legacy ``entry_points()`` returns a ``defaultdict`` without ``select``.
         entries = cast("importlib.metadata.SelectableGroups", entry_points).get(
             group, importlib.metadata.EntryPoints()
         )
-    return [entry for entry in entries if predicate(entry.name)]
+    return list(entries)
