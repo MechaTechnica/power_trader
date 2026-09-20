@@ -10,7 +10,7 @@ from decimal import Decimal
 class TickerSymbol:
     """
     Immutable ticker symbol representation.
-    
+
     Args:
         symbol: The ticker symbol (e.g., 'AAPL')
         exchange: Optional exchange identifier (e.g., 'NASDAQ')
@@ -33,7 +33,7 @@ class TickerSymbol:
 class MarketBar:
     """
     OHLCV bar data - using dataclass with slots for performance.
-    
+
     This is used in the hot path (streaming market data), so we optimize:
     - frozen=True for immutability and hashability
     - slots=True for memory efficiency

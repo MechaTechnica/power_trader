@@ -10,12 +10,12 @@ implementations live in application and strategy packages.
 __version__ = "0.1.0"
 
 from power_market.events import (
-                                 MarketDataReceived,
-                                 OrderFilled,
-                                 OrderRejected,
-                                 OrderRequested,
-                                 OrderSubmitted,
-                                 SignalGenerated,
+    MarketDataReceived,
+    OrderFilled,
+    OrderRejected,
+    OrderRequested,
+    OrderSubmitted,
+    SignalGenerated,
 )
 from power_market.protocols.data import MarketDataProvider, MarketScanner
 from power_market.protocols.output import SignalPresenter

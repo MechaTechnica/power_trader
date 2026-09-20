@@ -1,22 +1,18 @@
-"""Framework settings: shared configuration capability for every application.
+"""Framework settings: shared configuration for every application.
 
-Configuration is a *framework* concern, not an application concern. The
-framework owns the vocabulary (environment, service name, logging, telemetry)
-and the loading mechanism, so applications get consistent behaviour without
-each team re-inventing it.
-
-An application only *declares* its own settings as a data model::
+Configuration is a framework concern. An application declares its settings as a
+data model and the framework loads it (env + optional JSON file)::
 
     class PowerTraderSettings(Settings):
         ib: InteractiveBrokersSettings
 
-and declares it on its plugin via ``settings_class``. The framework then loads
-both :class:`FrameworkSettings` and the application settings, registering them
-in the container before the plugin wires anything up.
+Declare the model on a plugin via ``settings_class``; the framework registers it
+in the container before wiring.
 """
 
 import os
-from enum import Enum
+from enum import StrEnum
+from pathlib import Path
 from typing import ClassVar, TypeVar
 
 from pydantic import Field
@@ -28,7 +24,7 @@ from pydantic_settings import (
 )
 
 
-class Environment(str, Enum):
+class Environment(StrEnum):
     """Deployment environment."""
 
     DEVELOPMENT = "development"
@@ -36,7 +32,7 @@ class Environment(str, Enum):
     PRODUCTION = "production"
 
 
-class LogLevel(str, Enum):
+class LogLevel(StrEnum):
     """Root log level."""
 
     DEBUG = "DEBUG"
@@ -47,29 +43,12 @@ class LogLevel(str, Enum):
 
 
 class Settings(BaseSettings):
-    """
-    Base settings model that can load overrides from an external JSON file.
+    """Settings that may be overridden by an optional JSON file.
 
-    This lets operators adjust configuration at runtime without repackaging
-    the application: the JSON file is read from disk when settings are
-    instantiated, and it is *optional* - if absent, only defaults and
-    environment variables are used.
-
-    When the JSON file is present, values are resolved with the following
-    precedence (highest first):
-
-    1. Values passed directly to the constructor (``__init__``).
-    2. Environment variables (``env_prefix`` / ``env_nested_delimiter``).
-    3. ``.env`` files.
-    4. The JSON file.
-    5. Field defaults.
-
-    Subclasses configure the JSON lookup with two class attributes:
-
-    - ``CONFIG_FILE_ENV``: name of an environment variable that points to an
-      explicit JSON path (used first when set).
-    - ``DEFAULT_JSON_FILE``: a filename resolved relative to the current
-      working directory (used when ``CONFIG_FILE_ENV`` is unset).
+    Precedence (highest first): constructor args, env vars, ``.env``, the JSON
+    file, then field defaults. Locate the JSON file via ``CONFIG_FILE_ENV`` (an
+    env var pointing to a path) or ``DEFAULT_JSON_FILE`` (a path relative to the
+    working directory).
     """
 
     CONFIG_FILE_ENV: ClassVar[str] = ""
@@ -81,7 +60,7 @@ class Settings(BaseSettings):
         path = os.environ.get(cls.CONFIG_FILE_ENV) if cls.CONFIG_FILE_ENV else None
         if not path:
             path = cls.DEFAULT_JSON_FILE or None
-        if path and os.path.exists(path):
+        if path and Path(path).exists():
             return path
         return None
 
@@ -103,9 +82,7 @@ class Settings(BaseSettings):
         json_file = cls._json_file()
         if json_file is not None:
             sources.append(
-                JsonConfigSettingsSource(
-                    settings_cls, json_file=json_file, deep_merge=True
-                )
+                JsonConfigSettingsSource(settings_cls, json_file=json_file, deep_merge=True)
             )
         sources.append(file_secret_settings)
         return tuple(sources)

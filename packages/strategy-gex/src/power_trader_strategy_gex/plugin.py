@@ -19,5 +19,6 @@ class GEXPlugin(Plugin):
     name = "gex"
 
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:
+        del runtime
         container.register(GEXCalculator)
         container.register(Strategy[GEXStrategy], GEXStrategy)

@@ -22,11 +22,13 @@ select = [
 ignore = [
     "PLR0913",  # Too many arguments
     "PLR2004",  # Magic value used in comparison
+    "RUF001",   # Intentional unicode (✓/✗ validation tree, ℹ/⚠ UI, σ math)
+    "RUF002",   # Intentional unicode in docstrings
 ]
 
 [lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
-"tests/*" = ["ARG", "PLR2004"]
+"**/tests/**" = ["ARG", "PLR2004"]
 
 [lint.isort]
 known-first-party = [

@@ -3,8 +3,8 @@
 from datetime import datetime
 
 import pytest
-from power_day_trader.adapters.secondary.signal_aggregator import \
-    WeightedAverageAggregator
+
+from power_day_trader.adapters.secondary.signal_aggregator import WeightedAverageAggregator
 from power_market.types.signals import Signal, SignalIntent, SignalSource
 
 

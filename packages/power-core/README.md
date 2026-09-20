@@ -33,10 +33,12 @@ uv pip install -e packages/power-core
 from power_core import Application, DIContainer, PluginRegistry
 from power_framework.protocols import IMarketDataProvider
 
+
 # Create DI container
 class MyAppContainer(DIContainer):
     # Register your dependencies
     pass
+
 
 # Create application
 container = MyAppContainer()

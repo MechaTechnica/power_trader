@@ -84,9 +84,7 @@ class TestApplicationBuilder(ApplicationBuilder):
 
     def validate(self) -> TestApplicationBuilder:
         """Validate the dependency graph including the registered overrides."""
-        ApplicationBootstrapper().validate(
-            self._application_class, overrides=self._overrides
-        )
+        ApplicationBootstrapper().validate(self._application_class, overrides=self._overrides)
         return self
 
     def build(self) -> Runtime:
@@ -124,9 +122,7 @@ class ApplicationTestHarness:
         }
         self._runtime: Runtime | None = None
 
-    def replace(
-        self, interface: Any, instance: Any
-    ) -> ApplicationTestHarness:
+    def replace(self, interface: Any, instance: Any) -> ApplicationTestHarness:
         """Substitute ``instance`` for an application adapter (database, bus, ...)."""
         self._module_overrides.append((interface, instance))
         return self

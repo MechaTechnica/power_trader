@@ -321,9 +321,7 @@ class Container:
             if cached is not _UNSET:
                 return cached
 
-        instance = await self._construct_async(
-            reg.interface, reg.implementation, reg.extra_kwargs
-        )
+        instance = await self._construct_async(reg.interface, reg.implementation, reg.extra_kwargs)
         if reg.lifetime is Lifetime.SINGLETON:
             reg.instance = instance
         elif reg.lifetime is Lifetime.SCOPED:
@@ -517,9 +515,7 @@ class Container:
         children: list[DependencyNode] = []
         for param_name, annotation in params.items():
             if annotation in (Any, inspect.Parameter.empty) or annotation is None:
-                children.append(
-                    DependencyNode(name=f"{param_name}: untyped", missing=True)
-                )
+                children.append(DependencyNode(name=f"{param_name}: untyped", missing=True))
                 continue
             children.append(self._build_dependency_tree(annotation, path))
         path.discard(interface)

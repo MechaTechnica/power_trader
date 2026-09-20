@@ -4,10 +4,9 @@ from datetime import datetime
 from decimal import Decimal
 
 import pytest
-from power_market.types.market import (MarketBar, MarketContext, TickerSymbol,
-                                       TimeInterval)
-from power_market.types.signals import (Signal, SignalIntent, SignalMetadata,
-                                        SignalSource)
+
+from power_market.types.market import MarketBar, MarketContext, TickerSymbol, TimeInterval
+from power_market.types.signals import Signal, SignalIntent, SignalMetadata, SignalSource
 
 
 class TestTickerSymbol:
@@ -61,7 +60,7 @@ class TestMarketBar:
     def test_high_less_than_low_raises(self) -> None:
         """Test that high < low raises ValueError."""
         symbol = TickerSymbol(symbol="AAPL")
-        with pytest.raises(ValueError, match="High .* must be >= low"):
+        with pytest.raises(ValueError, match=r"High .* must be >= low"):
             MarketBar(
                 symbol=symbol,
                 timestamp=datetime.now(),
@@ -190,7 +189,7 @@ class TestSignal:
 
     def test_confidence_out_of_range_raises(self) -> None:
         """Test that confidence out of range raises ValueError."""
-        with pytest.raises(ValueError, match="must be between 0.0 and 1.0"):
+        with pytest.raises(ValueError, match=r"must be between 0\.0 and 1\.0"):
             Signal(
                 intent=SignalIntent.BUY,
                 confidence=1.5,  # Too high!

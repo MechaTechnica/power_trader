@@ -14,9 +14,7 @@ from power_framework.observability import (
 
 
 def test_structured_logger_injects_context(caplog):
-    logger = StructuredLogger(
-        service="test-svc", environment="production", version="1.2.3"
-    )
+    logger = StructuredLogger(service="test-svc", environment="production", version="1.2.3")
 
     with caplog.at_level(logging.INFO), correlation_scope("corr-1", "trace-1"):
         logger.info("order_submitted", order_id="42", instrument="AAPL")
@@ -71,11 +69,13 @@ def test_in_memory_metrics_records_values():
 
 def test_tracer_records_span_and_propagates_trace_id():
     tracer = InMemoryTracer()
-    with correlation_scope(trace_id="trace-123"):
-        with tracer.start_span("place_order", instrument="AAPL") as span:
-            assert current_trace_id() == "trace-123"
-            assert span.trace_id == "trace-123"
-            span.set_attribute("quantity", 10)
+    with (
+        correlation_scope(trace_id="trace-123"),
+        tracer.start_span("place_order", instrument="AAPL") as span,
+    ):
+        assert current_trace_id() == "trace-123"
+        assert span.trace_id == "trace-123"
+        span.set_attribute("quantity", 10)
 
     assert len(tracer.spans) == 1
     recorded = tracer.spans[0]

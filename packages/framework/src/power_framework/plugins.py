@@ -8,11 +8,12 @@ from __future__ import annotations
 import importlib.metadata
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import ClassVar, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 
-from power_framework.protocols.container import Container
-from power_framework.protocols.lifecycle import LifecycleRegistry
-from power_framework.settings import Settings
+if TYPE_CHECKING:
+    from power_framework.protocols.container import Container
+    from power_framework.protocols.lifecycle import LifecycleRegistry
+    from power_framework.settings import Settings
 
 
 class Plugin(ABC):

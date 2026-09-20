@@ -22,20 +22,20 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 # ---------------------------------------------------------------------------
 # Correlation / trace context
 # ---------------------------------------------------------------------------
 
-_correlation_id_var: ContextVar[str | None] = ContextVar(
-    "correlation_id", default=None
-)
+_correlation_id_var: ContextVar[str | None] = ContextVar("correlation_id", default=None)
 _trace_id_var: ContextVar[str | None] = ContextVar("trace_id", default=None)
 
 
@@ -73,6 +73,7 @@ def correlation_scope(
 # ---------------------------------------------------------------------------
 # Structured logging
 # ---------------------------------------------------------------------------
+
 
 class Logger(Protocol):
     """A structured logger whose context is injected by the framework."""
@@ -144,6 +145,7 @@ class StructuredLogger:
 # Metrics
 # ---------------------------------------------------------------------------
 
+
 class Metrics(Protocol):
     """A minimal metrics surface (counters, gauges, histograms)."""
 
@@ -192,6 +194,7 @@ class InMemoryMetrics:
 # ---------------------------------------------------------------------------
 # Tracing
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Span:

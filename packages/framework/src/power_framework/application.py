@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from power_framework.exceptions import (DependencyError, LifecycleError,
-                                        PluginError)
-from power_framework.plugins import (Plugin, _get_entry_points,
-                                     _get_group_entry_points)
-from power_framework.protocols.container import Container
+from power_framework.exceptions import DependencyError, LifecycleError, PluginError
+from power_framework.plugins import Plugin, _get_entry_points, _get_group_entry_points
 from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.settings import load_settings
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from power_framework.protocols.container import Container
 
 PLUGIN_GROUP = "power.plugins"
 CORE_GROUP = "power.core"
@@ -171,9 +172,7 @@ class ApplicationBootstrapper:
         """Instantiate one instance of every installed plugin."""
         return [plugin_class() for plugin_class in self._load_plugins()]
 
-    def _load_core_container(
-        self, framework_overrides: dict[Any, Any] | None = None
-    ) -> Container:
+    def _load_core_container(self, framework_overrides: dict[Any, Any] | None = None) -> Container:
         """Ask the runtime (power-core) for a configured container.
 
         ``framework_overrides`` replaces framework-supplied services (event bus,
@@ -319,9 +318,7 @@ class ApplicationBuilder:
     def build(self) -> Runtime:
         """Build the application and wrap it in a lifecycle-owning runtime."""
         app_bootstrapper = ApplicationBootstrapper()
-        return app_bootstrapper.bootstrap(
-            self._application_class, validate=self._validate
-        )
+        return app_bootstrapper.bootstrap(self._application_class, validate=self._validate)
 
 
 __all__ = [

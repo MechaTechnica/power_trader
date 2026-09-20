@@ -4,9 +4,14 @@ from datetime import datetime
 from decimal import Decimal
 
 from power_framework.events import DomainEvent
-from power_market.events import (MarketDataReceived, OrderFilled,
-                                 OrderRejected, OrderRequested, OrderSubmitted,
-                                 SignalGenerated)
+from power_market.events import (
+    MarketDataReceived,
+    OrderFilled,
+    OrderRejected,
+    OrderRequested,
+    OrderSubmitted,
+    SignalGenerated,
+)
 from power_market.types.market import MarketBar, TickerSymbol
 from power_market.types.signals import Signal, SignalIntent, SignalSource
 
@@ -35,9 +40,7 @@ def _make_signal(intent: SignalIntent = SignalIntent.BUY) -> Signal:
 def test_domain_events_are_domain_events():
     symbol = TickerSymbol(symbol="AAPL")
     assert isinstance(MarketDataReceived(symbol=symbol, bar=_make_bar()), DomainEvent)
-    assert isinstance(
-        SignalGenerated(symbol=symbol, signal=_make_signal()), DomainEvent
-    )
+    assert isinstance(SignalGenerated(symbol=symbol, signal=_make_signal()), DomainEvent)
 
 
 def test_market_data_received_carries_payload_and_identity():
@@ -63,9 +66,7 @@ def test_signal_generated_carries_signal():
 def test_order_lifecycle_events_carry_payload():
     symbol = TickerSymbol(symbol="AAPL")
 
-    requested = OrderRequested(
-        symbol=symbol, intent=SignalIntent.BUY, quantity=Decimal("10")
-    )
+    requested = OrderRequested(symbol=symbol, intent=SignalIntent.BUY, quantity=Decimal("10"))
     submitted = OrderSubmitted(
         order_id="ord-1", symbol=symbol, intent=SignalIntent.BUY, quantity=Decimal("10")
     )

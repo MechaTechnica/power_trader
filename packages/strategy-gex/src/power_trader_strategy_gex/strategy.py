@@ -7,8 +7,7 @@ from typing import Any
 from power_framework.protocols.lifecycle import Lifecycle
 from power_market.types.market import MarketContext
 from power_market.types.signals import Signal, SignalIntent, SignalSource
-from power_trader_strategy_gex.gex_calculator import (GEXCalculator, GEXLevel,
-                                                      OptionData)
+from power_trader_strategy_gex.gex_calculator import GEXCalculator, GEXLevel, OptionData
 
 
 class GEXStrategy(Lifecycle):
@@ -75,9 +74,7 @@ class GEXStrategy(Lifecycle):
         """
         bars = context.bars
         if not bars:
-            return self._create_signal(
-                SignalIntent.HOLD, 0.5, {"reason": "no_data"}
-            )
+            return self._create_signal(SignalIntent.HOLD, 0.5, {"reason": "no_data"})
 
         current_bar = bars[-1]
         current_price = float(current_bar.close)
@@ -152,8 +149,7 @@ class GEXStrategy(Lifecycle):
         nearby_levels = [
             level
             for level in key_levels
-            if abs(float(level.strike) - current_price) / current_price
-            <= self.proximity_threshold
+            if abs(float(level.strike) - current_price) / current_price <= self.proximity_threshold
             and level.strength >= self.min_gex_strength
         ]
 
@@ -161,9 +157,9 @@ class GEXStrategy(Lifecycle):
         for i, level in enumerate(key_levels[:3]):
             metadata["key_levels"].append(
                 {
-                    f"level_{i+1}_strike": float(level.strike),
-                    f"level_{i+1}_type": "resistance" if level.is_resistance else "support",
-                    f"level_{i+1}_strength": round(level.strength, 2),
+                    f"level_{i + 1}_strike": float(level.strike),
+                    f"level_{i + 1}_type": "resistance" if level.is_resistance else "support",
+                    f"level_{i + 1}_strength": round(level.strength, 2),
                 }
             )
 
@@ -201,9 +197,8 @@ class GEXStrategy(Lifecycle):
                 },
             )
 
-    async def _fetch_options_chain(
-        self, symbol: Any, current_price: float
-    ) -> list[OptionData]:
+    async def _fetch_options_chain(self, symbol: Any, current_price: float) -> list[OptionData]:
+        del symbol
         """
         Fetch options chain data.
 

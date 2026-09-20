@@ -1,17 +1,15 @@
 """Power Market domain type definitions."""
 
-from power_market.types.market import (MarketBar, MarketContext, TickerSymbol,
-                                       TimeInterval)
-from power_market.types.signals import (Signal, SignalIntent, SignalMetadata,
-                                        SignalSource)
+from power_market.types.market import MarketBar, MarketContext, TickerSymbol, TimeInterval
+from power_market.types.signals import Signal, SignalIntent, SignalMetadata, SignalSource
 
 __all__ = [
-    "SignalIntent",
     "MarketBar",
     "MarketContext",
-    "TickerSymbol",
-    "TimeInterval",
+    "Signal",
+    "SignalIntent",
     "SignalMetadata",
     "SignalSource",
-    "Signal",
+    "TickerSymbol",
+    "TimeInterval",
 ]

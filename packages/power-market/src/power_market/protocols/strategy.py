@@ -1,101 +1,45 @@
-"""Strategy protocols for ML trading strategies."""
+"""Trading strategy protocols."""
 
 from typing import Protocol, TypeVar
 
 from power_market.types.market import MarketContext
 from power_market.types.signals import Signal
 
-#: Discriminator type parameter. Each strategy registers itself under a
-#: distinct ``Strategy[T]`` specialization (``T`` is typically its own
-#: implementation type), letting the container hold many strategies without
-#: key collisions. The container can then resolve *all* of them as a list.
-T = TypeVar("T")
+#: Discriminator type parameter. Each strategy registers under a distinct
+#: ``Strategy[T]`` specialization so the container can hold many strategies
+#: without key collisions and resolve all of them as a list.
+T_co = TypeVar("T_co", covariant=True)
 
 
-class Strategy(Protocol[T]):
-    """
-    Protocol for ML trading strategies (plugins).
+class Strategy(Protocol[T_co]):
+    """A domain strategy: an identity plus a single ``analyze`` operation.
 
-    Each strategy is a separate package that implements this protocol. A
-    strategy is a pure *domain concept*: it only exposes its identity
-    (``strategy_name``/``version``) and its single domain operation
-    (``analyze``). Infrastructure concerns such as lifecycle management live
-    elsewhere (see ``power_framework.protocols.lifecycle.Lifecycle``), so this
-    interface does not accumulate ``start``/``stop``/``health``/``metrics``
-    hooks over time. Wiring (registering dependencies into a container) lives
-    in the strategy package's ``plugin.py``, not here.
+    Infrastructure concerns (lifecycle, wiring) live elsewhere; this interface
+    stays small. Wiring goes in the strategy package's ``plugin.py``.
     """
 
     @property
     def strategy_name(self) -> str:
-        """
-        Unique identifier for this strategy.
-
-        Returns:
-            Strategy name (e.g., "momentum-v1")
-        """
+        """Unique name, e.g. ``"momentum-v1"``."""
         ...
 
     @property
     def version(self) -> str:
-        """
-        Strategy version.
-
-        Returns:
-            Version string (e.g., "1.0.0")
-        """
+        """Version string, e.g. ``"1.0.0"``."""
         ...
 
     async def analyze(self, context: MarketContext) -> Signal:
-        """
-        Analyze market data and generate a trading signal.
+        """Analyze market state and return a BUY/HOLD/SELL signal.
 
-        Args:
-            context: Market state snapshot (symbol, bars, and reference time).
-                     The context is the stable input surface and can evolve to
-                     carry quotes, options, fundamentals, news, position, and
-                     account state without changing this interface.
-
-        Returns:
-            Signal with BUY, HOLD, or SELL intent
-
-        Note:
-            This is called frequently (hot path), so performance matters.
-            Strategies should:
-            - Cache computed indicators when possible
-            - Avoid blocking I/O
-            - Return quickly (< 100ms ideal)
+        Called on the hot path, so implementations should cache indicators and
+        avoid blocking I/O.
         """
         ...
 
 
 class SignalAggregator(Protocol):
-    """
-    Protocol for aggregating signals from multiple strategies.
+    """Combines signals from multiple strategies into one."""
 
-    When multiple strategies provide signals for the same stock,
-    this combines them into a single signal using business rules.
-    """
-
-    def aggregate_signals(
-        self,
-        signals: list[Signal],
-    ) -> Signal:
-        """
-        Combine multiple strategy signals into one.
-
-        Args:
-            signals: List of signals from different strategies
-                     All signals are for the same stock/timestamp
-
-        Returns:
-            Aggregated signal
-
-        Note:
-            Implementation defines the aggregation strategy:
-            - Weighted average by confidence
-            - Unanimous decision only
-            - Majority voting
-            - Custom ML-based aggregation
-        """
+    def aggregate_signals(self, signals: list[Signal]) -> Signal:
+        """Merge ``signals`` (same stock/timestamp) into a single signal."""
         ...

@@ -6,9 +6,10 @@ them itself. The framework's configuration capability loads both
 registers them in the container before the plugin wires anything up.
 """
 
-from power_framework.settings import Settings
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from power_framework.settings import Settings
 
 
 class InteractiveBrokersSettings(BaseSettings):
@@ -24,9 +25,7 @@ class InteractiveBrokersSettings(BaseSettings):
 class TradingSettings(BaseSettings):
     """Trading configuration."""
 
-    default_interval_seconds: int = Field(
-        default=60, description="Default bar interval in seconds"
-    )
+    default_interval_seconds: int = Field(default=60, description="Default bar interval in seconds")
     max_concurrent_symbols: int = Field(
         default=10, description="Maximum symbols to monitor concurrently"
     )

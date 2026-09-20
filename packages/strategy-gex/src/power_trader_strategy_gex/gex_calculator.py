@@ -35,7 +35,7 @@ class GEXLevel:
 class GEXCalculator:
     """
     Calculate Gamma Exposure (GEX) from options chain data.
-    
+
     GEX represents the amount of gamma dealers have on their books.
     - Positive GEX (dealer long gamma): Acts as support, reduces volatility
     - Negative GEX (dealer short gamma): Acts as resistance, increases volatility
@@ -44,7 +44,7 @@ class GEXCalculator:
     def __init__(self, risk_free_rate: float = 0.05) -> None:
         """
         Initialize GEX calculator.
-        
+
         Args:
             risk_free_rate: Annual risk-free interest rate (default 5%)
         """
@@ -53,18 +53,18 @@ class GEXCalculator:
     def calculate_gamma(self, option: OptionData) -> float:
         """
         Calculate gamma for a single option using Black-Scholes.
-        
+
         Gamma = N'(d1) / (S * σ * sqrt(T))
-        
+
         Where:
         - N'(d1) is the standard normal PDF
         - S is the underlying price
         - σ is implied volatility
         - T is time to expiration in years
-        
+
         Args:
             option: Option contract data
-            
+
         Returns:
             Gamma value (change in delta per $1 move in underlying)
         """
@@ -83,21 +83,21 @@ class GEXCalculator:
         # Calculate gamma
         gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))
 
-        return gamma
+        return float(gamma)
 
     def calculate_gex(self, option: OptionData) -> float:
         """
         Calculate gamma exposure for a single option.
-        
+
         GEX = Gamma * Open Interest * 100 * S²
-        
+
         Convention:
         - Calls: Positive GEX (dealers are long gamma)
         - Puts: Negative GEX (dealers are short gamma)
-        
+
         Args:
             option: Option contract data
-            
+
         Returns:
             Gamma exposure in dollars
         """
@@ -118,10 +118,10 @@ class GEXCalculator:
     ) -> dict[Decimal, tuple[float, float, float]]:
         """
         Aggregate GEX by strike price.
-        
+
         Args:
             options: List of option contracts
-            
+
         Returns:
             Dictionary mapping strike -> (total_gex, call_gex, put_gex)
         """
@@ -148,14 +148,15 @@ class GEXCalculator:
         current_price: Decimal,
         top_n: int = 5,
     ) -> list[GEXLevel]:
+        del current_price
         """
         Identify key GEX support/resistance levels.
-        
+
         Args:
             gex_by_strike: GEX aggregated by strike
             current_price: Current underlying price
             top_n: Number of top levels to return
-            
+
         Returns:
             List of key GEX levels sorted by absolute strength
         """
@@ -194,13 +195,13 @@ class GEXCalculator:
     def calculate_total_gex(self, options: list[OptionData]) -> float:
         """
         Calculate total market GEX.
-        
+
         Positive total GEX: Low volatility environment (dealer long gamma)
         Negative total GEX: High volatility environment (dealer short gamma)
-        
+
         Args:
             options: List of option contracts
-            
+
         Returns:
             Total GEX across all strikes
         """
@@ -211,34 +212,31 @@ class GEXCalculator:
     ) -> Decimal | None:
         """
         Find the strike where cumulative GEX changes from positive to negative.
-        
+
         This is often called the "gamma flip point" and represents a key level.
-        
+
         Args:
             gex_by_strike: GEX aggregated by strike
-            
+
         Returns:
             Strike price of zero gamma level, or None if not found
         """
         strikes_sorted = sorted(gex_by_strike.keys())
 
         cumulative_gex = 0.0
-        prev_strike = None
         prev_cumulative = None
 
         for strike in strikes_sorted:
             total_gex = gex_by_strike[strike][0]
             cumulative_gex += total_gex
 
-            # Check if we crossed zero
-            if prev_cumulative is not None:
-                if (prev_cumulative > 0 and cumulative_gex < 0) or (
-                    prev_cumulative < 0 and cumulative_gex > 0
-                ):
-                    # Return the strike where crossing occurred
-                    return strike
+            # Return the strike where the cumulative GEX crosses zero.
+            if prev_cumulative is not None and (
+                (prev_cumulative > 0 and cumulative_gex < 0)
+                or (prev_cumulative < 0 and cumulative_gex > 0)
+            ):
+                return strike
 
-            prev_strike = strike
             prev_cumulative = cumulative_gex
 
         return None
@@ -247,10 +245,10 @@ class GEXCalculator:
     def _time_to_expiration(expiration: datetime) -> float:
         """
         Calculate time to expiration in years.
-        
+
         Args:
             expiration: Expiration datetime
-            
+
         Returns:
             Time to expiration in years
         """

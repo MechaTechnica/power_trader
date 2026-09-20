@@ -18,4 +18,5 @@ class MomentumPlugin(Plugin):
     name = "momentum"
 
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:
+        del runtime
         container.register(Strategy[MomentumStrategy], MomentumStrategy)

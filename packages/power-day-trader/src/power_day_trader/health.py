@@ -5,10 +5,9 @@ registered with the runtime's :class:`HealthCheckRegistry`, so ``/ready``
 reports the same standard shape as every other framework application.
 """
 
-from power_day_trader.adapters.secondary.ib_provider import \
-    InteractiveBrokersAdapter
+from power_day_trader.adapters.secondary.ib_provider import InteractiveBrokersAdapter
 from power_day_trader.core.strategy_registry import StrategyRegistry
-from power_framework.health import HealthCheck, HealthStatus
+from power_framework.health import HealthStatus
 from power_market.protocols.data import MarketDataProvider
 
 

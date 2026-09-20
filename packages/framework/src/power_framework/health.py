@@ -14,11 +14,11 @@ report a :class:`HealthStatus`. The framework aggregates them into a single
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Protocol
 
 
-class Status(str, Enum):
+class Status(StrEnum):
     """Overall health of a component or the whole service."""
 
     HEALTHY = "healthy"
@@ -40,9 +40,7 @@ class HealthStatus:
         return cls(name=name, status=Status.HEALTHY, message=message)
 
     @classmethod
-    def unhealthy(
-        cls, name: str, message: str | None = None, **details: Any
-    ) -> HealthStatus:
+    def unhealthy(cls, name: str, message: str | None = None, **details: Any) -> HealthStatus:
         return cls(name=name, status=Status.UNHEALTHY, message=message, details=details)
 
 
@@ -77,9 +75,7 @@ class HealthCheckRegistry:
             try:
                 results.append(await check.check())
             except Exception as exc:
-                results.append(
-                    HealthStatus.unhealthy(check.name, str(exc))
-                )
+                results.append(HealthStatus.unhealthy(check.name, str(exc)))
         return results
 
 

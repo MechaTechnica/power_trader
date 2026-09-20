@@ -59,9 +59,7 @@ class MonitorStocksUseCase:
         async for bar in self._data_provider.stream_bars(symbols, interval):
             # Publish the domain fact that a bar arrived, so decoupled handlers
             # (audit, analytics, persistence) can react without coupling here.
-            await self._event_bus.publish(
-                MarketDataReceived(symbol=bar.symbol, bar=bar)
-            )
+            await self._event_bus.publish(MarketDataReceived(symbol=bar.symbol, bar=bar))
 
             # Build a market snapshot for the strategies
             context = MarketContext(
@@ -76,9 +74,7 @@ class MonitorStocksUseCase:
                 try:
                     signal = await strategy.analyze(context)
                     signals.append(signal)
-                    await self._event_bus.publish(
-                        SignalGenerated(symbol=bar.symbol, signal=signal)
-                    )
+                    await self._event_bus.publish(SignalGenerated(symbol=bar.symbol, signal=signal))
                 except Exception as e:
                     await self._output.present_error(e)
 

@@ -1,13 +1,13 @@
 """Dependency injection container protocol."""
 
 from collections.abc import AsyncIterator, Callable, Iterator
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Protocol, TypeVar, overload
 
-T = TypeVar("T", covariant=True)
+T_co = TypeVar("T_co", covariant=True)
 
 
-class Lifetime(str, Enum):
+class Lifetime(StrEnum):
     """How long a registered binding lives before it is recreated.
 
     This replaces ad-hoc ``"singleton"`` / ``"transient"`` strings with a
@@ -136,7 +136,7 @@ class Container(Protocol):
         ...
 
     @overload
-    def resolve(self, interface: type[T]) -> T: ...
+    def resolve(self, interface: type[T_co]) -> T_co: ...
 
     @overload
     def resolve(self, interface: type[Any]) -> Any: ...

@@ -3,19 +3,16 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class SignalIntent(str, Enum):
+class SignalIntent(StrEnum):
     """The action a strategy intends the trader to take."""
 
     BUY = "buy"
     SELL = "sell"
     HOLD = "hold"
-
-    def __str__(self) -> str:
-        return self.value
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,9 +70,7 @@ class Signal:
     def __post_init__(self) -> None:
         """Validate signal data."""
         if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError(
-                f"Confidence ({self.confidence}) must be between 0.0 and 1.0"
-            )
+            raise ValueError(f"Confidence ({self.confidence}) must be between 0.0 and 1.0")
 
 
 @dataclass

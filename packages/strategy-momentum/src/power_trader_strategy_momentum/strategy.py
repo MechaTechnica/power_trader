@@ -57,9 +57,7 @@ class MomentumStrategy(Lifecycle):
         bars = context.bars
         if len(bars) < 2:
             # Not enough data - HOLD
-            return self._create_signal(
-                SignalIntent.HOLD, 0.5, {"reason": "insufficient_data"}
-            )
+            return self._create_signal(SignalIntent.HOLD, 0.5, {"reason": "insufficient_data"})
 
         # Calculate simple momentum (% change from N bars ago)
         current_price = float(bars[-1].close)

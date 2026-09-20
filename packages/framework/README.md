@@ -83,7 +83,7 @@ bar = MarketBar(
     high=Decimal("151.00"),
     low=Decimal("149.50"),
     close=Decimal("150.50"),
-    volume=1000000
+    volume=1000000,
 )
 ```
 
@@ -94,17 +94,18 @@ from power_framework.protocols import IMarketDataProvider
 from power_framework.types import MarketBar, TickerSymbol, TimeInterval
 from collections.abc import AsyncIterator
 
+
 class MyDataProvider:
     """Concrete implementation of IMarketDataProvider protocol."""
-    
+
     async def connect(self) -> None:
         # Your implementation here
         pass
-    
+
     async def disconnect(self) -> None:
         # Your implementation here
         pass
-    
+
     async def stream_bars(
         self,
         symbols: list[TickerSymbol],
@@ -114,7 +115,7 @@ class MyDataProvider:
         while True:
             # yield bars...
             pass
-    
+
     async def get_historical_bars(
         self,
         symbol: TickerSymbol,
@@ -133,17 +134,18 @@ from power_framework.protocols import IStrategy
 from power_framework.types import TradingSignal, SignalType, MarketBar
 from datetime import datetime
 
+
 class MomentumStrategy:
     """Concrete strategy implementation."""
-    
+
     @property
     def strategy_name(self) -> str:
         return "momentum-v1"
-    
+
     @property
     def version(self) -> str:
         return "1.0.0"
-    
+
     async def analyze(self, bars: list[MarketBar]) -> TradingSignal:
         # Your strategy logic here
         return TradingSignal(
@@ -151,13 +153,13 @@ class MomentumStrategy:
             confidence=0.85,
             timestamp=datetime.now(),
             strategy_name=self.strategy_name,
-            metadata={"rsi": 65.0}
+            metadata={"rsi": 65.0},
         )
-    
+
     async def initialize(self) -> None:
         # Load models, etc.
         pass
-    
+
     async def cleanup(self) -> None:
         # Cleanup resources
         pass

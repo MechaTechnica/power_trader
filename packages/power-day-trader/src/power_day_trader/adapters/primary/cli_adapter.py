@@ -3,6 +3,7 @@
 import asyncio
 
 import click
+
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
 from power_market.types.market import TickerSymbol, TimeInterval
 
@@ -10,7 +11,7 @@ from power_market.types.market import TickerSymbol, TimeInterval
 class CLIAdapter:
     """
     CLI adapter - thin layer that converts CLI input to use case calls.
-    
+
     This is a primary adapter (driving) that drives the application.
     """
 

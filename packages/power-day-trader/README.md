@@ -106,22 +106,23 @@ Create a separate package implementing `IStrategy` protocol:
 from power_framework.protocols.strategy import IStrategy
 from power_framework.types import TradingSignal, SignalType, MarketBar
 
+
 class MyStrategy:
     @property
     def strategy_name(self) -> str:
         return "my-strategy-v1"
-    
+
     @property
     def version(self) -> str:
         return "1.0.0"
-    
+
     async def analyze(self, bars: list[MarketBar]) -> TradingSignal:
         # Your logic here
         return TradingSignal(...)
-    
+
     async def initialize(self) -> None:
         pass
-    
+
     async def cleanup(self) -> None:
         pass
 ```

@@ -1,5 +1,7 @@
 """Registry aggregating all loaded trading strategies."""
 
+from typing import Any
+
 from power_framework.protocols.lifecycle import Lifecycle
 from power_market.protocols.strategy import Strategy
 
@@ -7,20 +9,16 @@ from power_market.protocols.strategy import Strategy
 class StrategyRegistry(Lifecycle):
     """Holds every registered strategy and drives their lifecycle.
 
-    The container injects ``list[Strategy]`` (every ``Strategy[T]``
-    specialization) into this service. As a single :class:`Lifecycle`
-    component, the runtime starts/stops this registry in a consistent order.
-
-    Lifecycle is *not* part of the :class:`Strategy` domain interface, so the
-    registry only drives ``start``/``stop`` on strategies that separately opt
-    into the framework :class:`Lifecycle` protocol.
+    The container injects every ``Strategy[T]`` specialization as a list. As a
+    single :class:`Lifecycle` component, the runtime starts/stops this registry
+    in order. Only strategies that opt into :class:`Lifecycle` are driven.
     """
 
-    def __init__(self, strategies: list[Strategy]) -> None:
+    def __init__(self, strategies: list[Strategy[Any]]) -> None:
         self._strategies = strategies
 
     @property
-    def strategies(self) -> list[Strategy]:
+    def strategies(self) -> list[Strategy[Any]]:
         """All strategies, in registration order."""
         return self._strategies
 

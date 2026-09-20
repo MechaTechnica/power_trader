@@ -182,9 +182,7 @@ class ObserveInterceptor:
         finally:
             if self._logger is not None:
                 duration_ms = round((time.monotonic() - started) * 1000, 3)
-                self._logger.debug(
-                    "function_observed", function=name, duration_ms=duration_ms
-                )
+                self._logger.debug("function_observed", function=name, duration_ms=duration_ms)
 
 
 class AuditInterceptor:
@@ -222,11 +220,7 @@ def retry(
         async def publish(event: DomainEvent) -> None:
             ...
     """
-    return intercept(
-        RetryInterceptor(
-            max_attempts, delay_seconds=delay_seconds, retry_on=retry_on
-        )
-    )
+    return intercept(RetryInterceptor(max_attempts, delay_seconds=delay_seconds, retry_on=retry_on))
 
 
 def observed(logger: Logger | None = None) -> Callable[[Callable[P, R]], Callable[P, R]]:

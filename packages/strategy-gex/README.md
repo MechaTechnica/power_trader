@@ -56,9 +56,9 @@ uv pip install -e packages/strategy-gex
 from power_trader_strategy_gex import GEXStrategy
 
 strategy = GEXStrategy(
-    lookback_days=30,           # Days of options data to analyze
-    proximity_threshold=0.02,    # 2% - How close to GEX level for signal
-    min_gex_strength=0.3,       # Minimum 30% relative strength
+    lookback_days=30,  # Days of options data to analyze
+    proximity_threshold=0.02,  # 2% - How close to GEX level for signal
+    min_gex_strength=0.3,  # Minimum 30% relative strength
 )
 ```
 

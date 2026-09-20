@@ -2,7 +2,6 @@
 
 from datetime import datetime
 
-from power_market.protocols.strategy import SignalAggregator
 from power_market.types.signals import Signal, SignalIntent, SignalSource
 
 
@@ -30,12 +29,8 @@ class WeightedAverageAggregator:
 
         # Count votes for each intent
         buy_confidence = sum(s.confidence for s in signals if s.intent == SignalIntent.BUY)
-        sell_confidence = sum(
-            s.confidence for s in signals if s.intent == SignalIntent.SELL
-        )
-        hold_confidence = sum(
-            s.confidence for s in signals if s.intent == SignalIntent.HOLD
-        )
+        sell_confidence = sum(s.confidence for s in signals if s.intent == SignalIntent.SELL)
+        hold_confidence = sum(s.confidence for s in signals if s.intent == SignalIntent.HOLD)
 
         # Determine final intent
         max_confidence = max(buy_confidence, sell_confidence, hold_confidence)
