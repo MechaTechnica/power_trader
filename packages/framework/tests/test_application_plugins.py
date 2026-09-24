@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass
 
-from pydantic_settings import SettingsConfigDict
-
-from power_framework.application import CORE_GROUP, PLUGIN_GROUP, ApplicationBootstrapper
+from power_framework.application import (CORE_GROUP, PLUGIN_GROUP,
+                                         ApplicationBootstrapper)
 from power_framework.plugins import Plugin
 from power_framework.settings import Settings
+from pydantic_settings import SettingsConfigDict
 
 
 class FirstApplicationPlugin(Plugin):
@@ -115,3 +115,19 @@ def test_load_plugin_factories_loads_all_plugins(monkeypatch):
     # deduplicated by type.
     assert plugins == {FirstApplicationPlugin, SecondApplicationPlugin}
     assert entries.calls == [(PLUGIN_GROUP, None)]
+
+
+def test_load_plugins_honours_allowlist(monkeypatch):
+    entries = FakeEntryPoints(
+        [
+            FakeEntryPoint("application.first", FirstApplicationPlugin),
+            FakeEntryPoint("application.second", SecondApplicationPlugin),
+        ]
+    )
+    monkeypatch.setattr("power_framework.application._get_entry_points", lambda: entries)
+
+    bootstrapper = ApplicationBootstrapper()
+    # Only the entry-point name "application.first" is authorized.
+    plugins = bootstrapper._load_plugins(allowlist={"application.first"})
+
+    assert plugins == {FirstApplicationPlugin}

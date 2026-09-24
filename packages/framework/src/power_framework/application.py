@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from power_framework.exceptions import DependencyError, LifecycleError, PluginError
 from power_framework.plugins import Plugin, _get_entry_points, _get_group_entry_points
 from power_framework.protocols.lifecycle import LifecycleRegistry
-from power_framework.settings import load_settings
+from power_framework.settings import FrameworkSettings, load_settings
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -15,6 +15,14 @@ if TYPE_CHECKING:
 
 PLUGIN_GROUP = "power.plugins"
 CORE_GROUP = "power.core"
+
+
+def _plugin_name(plugin_class: type[Plugin]) -> str:
+    """Return a plugin's effective name (metadata first, then legacy ``name``)."""
+    meta_name = plugin_class.metadata.name
+    if meta_name != "unnamed":
+        return meta_name
+    return getattr(plugin_class, "name", None) or "unnamed"
 
 
 class ApplicationBase:
@@ -27,7 +35,8 @@ class ApplicationBase:
 
     The application is itself a :class:`Lifecycle` (the final stage to start and
     the first to stop); its own ``start``/``stop`` handle only application-level
-    concerns.
+    concerns. ``run`` is the application's main loop and is awaited on the same
+    event loop as the rest of the runtime.
     """
 
     async def start(self) -> None:
@@ -36,7 +45,7 @@ class ApplicationBase:
     async def stop(self) -> None:
         return None
 
-    def run(self) -> None:
+    async def run(self) -> None:
         return None
 
 
@@ -45,15 +54,26 @@ class Runtime(LifecycleRegistry):
 
     As a :class:`LifecycleRegistry`, it collects component types in the order
     plugins register them (infrastructure, domain services, extensions). ``start``
-    resolves each type from the container and drives it in that order, then
-    starts the application; ``stop`` reverses this. The application is always
-    started last and stopped first.
+    resolves each type from the container and drives it in that *registration*
+    order, then starts the application; ``stop`` reverses this. The application
+    is always started last and stopped first.
+
+    ``run`` drives the whole lifecycle on a **single** event loop: it awaits
+    ``start``, then the application's ``run``, then ``stop``. This avoids the
+    bug of binding event-loop-owned resources (clients, connections) to one loop
+    and tearing them down on another.
     """
 
-    def __init__(self, container: Container) -> None:
+    def __init__(
+        self,
+        container: Container,
+        *,
+        shutdown_timeout_seconds: float | None = None,
+    ) -> None:
         self._container = container
         self._component_types: list[type[Any]] = []
         self._application: ApplicationBase | None = None
+        self._shutdown_timeout_seconds = shutdown_timeout_seconds
 
     def register(self, component_type: type[Any]) -> None:
         """Register a lifecycle component type to be resolved and driven."""
@@ -76,7 +96,10 @@ class Runtime(LifecycleRegistry):
         return application
 
     async def start(self) -> None:
-        """Start every component in dependency order, then the application."""
+        """Start every component in registration order, then the application.
+
+        Startup is fail-fast: the first component that fails aborts startup.
+        """
         for component_type in self._component_types:
             component = self._container.resolve(component_type)
             try:
@@ -92,28 +115,71 @@ class Runtime(LifecycleRegistry):
             raise LifecycleError(f"Failed to start application: {exc}") from exc
 
     async def stop(self) -> None:
-        """Stop the application first, then components in reverse order."""
+        """Stop the application first, then components in reverse order.
+
+        Shutdown is *resilient*: every component is given a chance to stop even
+        if an earlier one fails. Failures are collected and reported together
+        (as a single :class:`LifecycleError`) rather than aborting the remaining
+        cleanup. Each component's stop is bounded by ``shutdown_timeout_seconds``
+        when configured.
+        """
+        errors: list[Exception] = []
+
         try:
-            await self.application.stop()
+            await self._stop_component(self.application, "application")
         except Exception as exc:
-            raise LifecycleError(f"Failed to stop application: {exc}") from exc
+            errors.append(exc)
+
         for component_type in reversed(self._component_types):
             component = self._container.resolve(component_type)
+            name = getattr(component_type, "__name__", str(component_type))
             try:
-                await component.stop()
+                await self._stop_component(component, name)
             except Exception as exc:
-                raise LifecycleError(
-                    f"Failed to stop component "
-                    f"'{getattr(component_type, '__name__', str(component_type))}': {exc}"
-                ) from exc
+                errors.append(exc)
+
+        if errors:
+            detail = "; ".join(str(e) for e in errors)
+            raise LifecycleError(f"Shutdown completed with {len(errors)} failure(s): {detail}")
+
+    async def _stop_component(self, component: Any, name: str) -> None:
+        """Stop ``component``, optionally bounded by the shutdown timeout."""
+        if self._shutdown_timeout_seconds is None:
+            await component.stop()
+            return
+        try:
+            await asyncio.wait_for(
+                component.stop(),
+                timeout=self._shutdown_timeout_seconds,
+            )
+        except TimeoutError as exc:
+            raise LifecycleError(
+                f"Timed out stopping '{name}' after "
+                f"{self._shutdown_timeout_seconds}s"
+            ) from exc
 
     def run(self) -> None:
-        """Start the runtime, run the application, then stop the runtime."""
-        asyncio.run(self.start())
+        """Run the application to completion, owning the event loop.
+
+        This is the synchronous public entry point for application developers:
+        the framework owns the async execution model (a single event loop driving
+        ``start`` → ``run`` → ``stop``), so callers never need to know about
+        ``asyncio``.
+        """
+        asyncio.run(self.run_async())
+
+    async def run_async(self) -> None:
+        """Run the application on the ambient event loop.
+
+        Use this when the framework is *embedded* inside an already-running event
+        loop (another async application, a notebook, or an async test runner),
+        where creating a second loop via :meth:`run` would be incorrect.
+        """
+        await self.start()
         try:
-            self.application.run()
+            await self.application.run()
         finally:
-            asyncio.run(self.stop())
+            await self.stop()
 
 
 class ApplicationBootstrapper:
@@ -123,6 +189,10 @@ class ApplicationBootstrapper:
     runtime (``power-core``) discovered via entry points. Plugins are registered
     into the container first (registering their lifecycle components), then the
     application is resolved and attached to the runtime.
+
+    Plugin discovery is separated from plugin *authorization*: discovery finds
+    every installed plugin, while an explicit allowlist (``enabled_plugins``)
+    decides which discovered plugins are actually loaded and executed.
     """
 
     def _load_core_entry_point(self) -> Callable[..., Container]:
@@ -148,8 +218,13 @@ class ApplicationBootstrapper:
 
         return core_matches[0].load()  # type: ignore[no-any-return]
 
-    def _load_plugins(self) -> set[type[Plugin]]:
-        """Load and return every installed plugin class in the plugins group.
+    def _load_plugins(self, allowlist: set[str] | None = None) -> set[type[Plugin]]:
+        """Load and return every *authorized* plugin class in the plugins group.
+
+        Discovery finds every installed plugin; the optional ``allowlist`` (a set
+        of plugin names or entry-point names) restricts which discovered plugins
+        are authorized to load and execute. When ``allowlist`` is ``None``, all
+        discovered plugins are authorized (the permissive default).
 
         Each loaded object must be a :class:`Plugin` subclass, and duplicate
         registrations (the same plugin class under multiple entry points) are
@@ -165,12 +240,16 @@ class ApplicationBootstrapper:
                 raise PluginError(
                     f"Plugin entry point '{entry_point.name}' must expose a Plugin subclass"
                 )
+            if allowlist is not None:
+                name = _plugin_name(plugin_class)
+                if name not in allowlist and entry_point.name not in allowlist:
+                    continue
             plugins.add(plugin_class)
         return plugins
 
-    def _initialize_plugins(self) -> list[Plugin]:
-        """Instantiate one instance of every installed plugin."""
-        return [plugin_class() for plugin_class in self._load_plugins()]
+    def _initialize_plugins(self, allowlist: set[str] | None = None) -> list[Plugin]:
+        """Instantiate one instance of every authorized plugin."""
+        return [plugin_class() for plugin_class in self._load_plugins(allowlist)]
 
     def _load_core_container(self, framework_overrides: dict[Any, Any] | None = None) -> Container:
         """Ask the runtime (power-core) for a configured container.
@@ -191,6 +270,7 @@ class ApplicationBootstrapper:
         *,
         overrides: list[tuple[Any, Any]] | None = None,
         framework_overrides: dict[Any, Any] | None = None,
+        enabled_plugins: set[str] | None = None,
     ) -> tuple[Container, Runtime]:
         """Run the bootstrap phases up to (but excluding) application construction.
 
@@ -198,24 +278,30 @@ class ApplicationBootstrapper:
         application before wiring is complete:
 
         1. **Discover** plugins (and the runtime entry point).
-        2. **Create the container** (the runtime registers the framework services:
+        2. **Authorize** plugins against the ``enabled_plugins`` allowlist.
+        3. **Create the container** (the runtime registers the framework services:
            logging, configuration, telemetry, health, events).
-        3. **Register framework overrides** — substituted *before* plugins wire,
-           so plugins resolve the fakes (captured telemetry/events).
-        4. **Register modules** — load each plugin's settings, then let it register
+        4. **Register framework overrides** — substituted *before* plugins wire.
+        5. **Register modules** — load each plugin's settings, then let it register
            its application services and lifecycle components.
-        5. **Register the application** as the composition root.
-        6. **Apply module overrides** — substitutes for adapters the plugins
+        6. **Register the application** as the composition root.
+        7. **Apply module overrides** — substitutes for adapters the plugins
            themselves registered.
-
-        The caller is then responsible for validating the dependency graph and
-        constructing the application. This keeps module wiring and application
-        construction strictly ordered and independently testable.
         """
         container = self._load_core_container(framework_overrides)
-        runtime = Runtime(container)
+        settings = container.resolve(FrameworkSettings)
+        runtime = Runtime(
+            container,
+            shutdown_timeout_seconds=settings.shutdown_timeout_seconds,
+        )
 
-        for plugin in self._initialize_plugins():
+        # Effective allowlist: explicit builder allowlist wins; otherwise fall
+        # back to the configured allowlist (discovery != authorization).
+        allowlist = enabled_plugins
+        if allowlist is None and settings.enabled_plugins:
+            allowlist = set(settings.enabled_plugins)
+
+        for plugin in self._initialize_plugins(allowlist):
             self._register_plugin_settings(container, plugin)
             plugin.register(container, runtime)
 
@@ -232,6 +318,7 @@ class ApplicationBootstrapper:
         *,
         overrides: list[tuple[Any, Any]] | None = None,
         framework_overrides: dict[Any, Any] | None = None,
+        enabled_plugins: set[str] | None = None,
     ) -> None:
         """Validate the application's dependency graph before construction.
 
@@ -243,6 +330,7 @@ class ApplicationBootstrapper:
             application_class,
             overrides=overrides,
             framework_overrides=framework_overrides,
+            enabled_plugins=enabled_plugins,
         )
         roots = [application_class, *runtime.component_types]
         container.validate(*roots)
@@ -254,6 +342,7 @@ class ApplicationBootstrapper:
         validate: bool = False,
         overrides: list[tuple[Any, Any]] | None = None,
         framework_overrides: dict[Any, Any] | None = None,
+        enabled_plugins: set[str] | None = None,
     ) -> Runtime:
         """Assemble the application and attach it to the runtime.
 
@@ -266,11 +355,13 @@ class ApplicationBootstrapper:
             framework_overrides: Optional ``interface -> instance`` map applied
                 before module wiring (substitutes the framework's event bus,
                 metrics, tracer, etc. so plugins resolve the fakes).
+            enabled_plugins: Optional allowlist of plugin names to authorize.
         """
         container, runtime = self.assemble(
             application_class,
             overrides=overrides,
             framework_overrides=framework_overrides,
+            enabled_plugins=enabled_plugins,
         )
         if validate:
             roots = [application_class, *runtime.component_types]
@@ -299,11 +390,25 @@ class ApplicationBuilder:
     ``ApplicationBuilder(MyApplication).build()`` works out of the box: the
     runtime supplies sensible defaults for logging, configuration, telemetry,
     health, lifecycle, and error handling, so teams only override what they need.
+
+    Plugin authorization is explicit: use :meth:`with_plugins` to restrict which
+    discovered plugins are loaded, or configure ``FrameworkSettings.enabled_plugins``.
     """
 
     def __init__(self, application_class: type[ApplicationBase], *, validate: bool = False) -> None:
         self._application_class = application_class
         self._validate = validate
+        self._enabled_plugins: set[str] | None = None
+
+    def with_plugins(self, *plugin_classes: type[Plugin]) -> ApplicationBuilder:
+        """Authorize only the given plugin classes (by name) to load.
+
+        This is the explicit allowlist that separates plugin *discovery* from
+        plugin *authorization*: installed packages are discovered, but only the
+        named plugins are loaded and executed.
+        """
+        self._enabled_plugins = {_plugin_name(p) for p in plugin_classes}
+        return self
 
     def validate(self) -> ApplicationBuilder:
         """Validate the dependency graph, returning ``self`` for chaining.
@@ -312,13 +417,20 @@ class ApplicationBuilder:
             DependencyValidationError: If the graph is incomplete, with a tree
                 showing each dependency as ``✓`` or ``✗ missing``.
         """
-        ApplicationBootstrapper().validate(self._application_class)
+        ApplicationBootstrapper().validate(
+            self._application_class,
+            enabled_plugins=self._enabled_plugins,
+        )
         return self
 
     def build(self) -> Runtime:
         """Build the application and wrap it in a lifecycle-owning runtime."""
         app_bootstrapper = ApplicationBootstrapper()
-        return app_bootstrapper.bootstrap(self._application_class, validate=self._validate)
+        return app_bootstrapper.bootstrap(
+            self._application_class,
+            validate=self._validate,
+            enabled_plugins=self._enabled_plugins,
+        )
 
 
 __all__ = [

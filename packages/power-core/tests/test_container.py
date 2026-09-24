@@ -1,9 +1,9 @@
 """Tests for the power-core Container (decoupled DI)."""
 
+import asyncio
 from typing import Protocol
 
 import pytest
-
 from power_core.container import Container
 from power_core.exceptions import DIError
 from power_framework.protocols.container import Lifetime
@@ -217,3 +217,26 @@ async def test_scope_async_disposes_scoped_instances_on_exit():
         await scope.resolve_async(Service)
 
     assert disposed == ["stopped"]
+
+
+@pytest.mark.asyncio
+async def test_async_singleton_is_constructed_exactly_once_under_gather():
+    constructed = {"n": 0}
+
+    class SlowService:
+        def __init__(self) -> None:
+            constructed["n"] += 1
+
+    async def make_slow() -> SlowService:
+        await asyncio.sleep(0.01)  # force interleaving between concurrent resolves
+        return SlowService()
+
+    container = Container()
+    container.register(Service, make_slow)
+
+    results = await asyncio.gather(
+        *(container.resolve_async(Service) for _ in range(100))
+    )
+
+    assert constructed["n"] == 1
+    assert all(result is results[0] for result in results)

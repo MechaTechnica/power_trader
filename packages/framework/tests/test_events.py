@@ -1,10 +1,13 @@
 """Tests for the framework event bus capability."""
 
+import asyncio
 from dataclasses import dataclass
 
 import pytest
-
-from power_framework.events import DomainEvent, Event, InMemoryEventBus
+from power_framework.events import (Concurrency, DomainEvent, Event,
+                                    InMemoryEventBus, QueuedEventBus,
+                                    RetryPolicy, handler)
+from power_framework.exceptions import InfrastructureError
 from power_framework.observability import correlation_scope
 
 
@@ -93,3 +96,57 @@ def test_event_has_identity_and_timestamp():
     event = Event()
     assert event.event_id
     assert event.timestamp is not None
+
+
+async def test_concurrent_bus_runs_handlers_together():
+    bus = InMemoryEventBus(concurrency=Concurrency.CONCURRENT)
+    order: list[str] = []
+
+    class SlowHandler:
+        def __init__(self, name: str) -> None:
+            self._name = name
+
+        async def handle(self, event: Event) -> None:
+            await asyncio.sleep(0.02)
+            order.append(self._name)
+
+    bus.subscribe(Event, SlowHandler("a"))
+    bus.subscribe(Event, SlowHandler("b"))
+
+    await bus.publish(Event())
+
+    # Both handlers ran (concurrently), so both recorded.
+    assert set(order) == {"a", "b"}
+
+
+async def test_queued_bus_decouples_publish_from_handling():
+    bus = QueuedEventBus()
+    handled: list[Event] = []
+
+    class Recording:
+        async def handle(self, event: Event) -> None:
+            handled.append(event)
+
+    bus.subscribe(Event, Recording())
+    await bus.start()
+
+    await bus.publish(Event())
+    await bus.stop()
+
+    assert len(handled) == 1
+
+
+async def test_handler_decorator_registers_with_retry_policy():
+    bus = InMemoryEventBus()
+    attempts = {"n": 0}
+
+    @handler(Event, retry=RetryPolicy(max_attempts=3))
+    async def on_event(event: Event) -> None:
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise InfrastructureError("transient")
+
+    bus.register(on_event)
+    await bus.publish(Event())
+
+    assert attempts["n"] == 3

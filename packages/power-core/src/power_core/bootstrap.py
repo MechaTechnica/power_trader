@@ -11,11 +11,14 @@ from power_core.container import Container
 from power_framework.events import Event, EventBus, InMemoryEventBus
 from power_framework.health import HealthCheckRegistry, HealthService
 from power_framework.observability import (
+    AuditSink,
+    InMemoryAuditSink,
     InMemoryMetrics,
-    InMemoryTracer,
     Logger,
     Metrics,
+    OpenTelemetryTracer,
     StructuredLogger,
+    TerminalLogger,
     Tracer,
 )
 from power_framework.settings import FrameworkSettings, load_settings
@@ -60,14 +63,25 @@ def create_container(
     container.register_instance(FrameworkSettings, settings)
 
     # Observability: one shared stack, sourced from framework settings.
+    # Two logging concerns are wired separately: a human-readable terminal
+    # logger for the console, and a structured logger that emits JSON records
+    # for permanent storage (e.g. Cosmos DB).
     logger = StructuredLogger(
         service=settings.service_name,
         environment=settings.environment.value,
         version=settings.service_version,
     )
+    terminal_logger = TerminalLogger()
     container.register_instance(Logger, logger)
+    container.register_instance(StructuredLogger, logger)
+    container.register_instance(TerminalLogger, terminal_logger)
     container.register_instance(Metrics, InMemoryMetrics())
-    container.register_instance(Tracer, InMemoryTracer())
+    # Tracing adapts to OpenTelemetry when installed, falling back to in-memory.
+    container.register_instance(Tracer, OpenTelemetryTracer(service_name=settings.service_name))
+
+    # Audit is a separate concern from operational logging: a dedicated sink
+    # records immutable, compliance-grade audit events.
+    container.register_instance(AuditSink, InMemoryAuditSink())
 
     # Health/readiness: applications register their own dependency checks.
     health_registry = HealthCheckRegistry()

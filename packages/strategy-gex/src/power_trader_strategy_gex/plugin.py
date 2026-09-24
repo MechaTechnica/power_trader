@@ -5,7 +5,7 @@ This plugin registers the strategy and its dependencies into the container it
 is handed by the runtime.
 """
 
-from power_framework.plugins import Plugin
+from power_framework.plugins import Plugin, PluginMetadata
 from power_framework.protocols.container import Container
 from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_market.protocols.strategy import Strategy
@@ -16,7 +16,12 @@ from power_trader_strategy_gex.strategy import GEXStrategy
 class GEXPlugin(Plugin):
     """Plugin wiring for the GEX strategy."""
 
-    name = "gex"
+    metadata = PluginMetadata(
+        name="gex",
+        version="0.1.0",
+        description="Gamma Exposure (GEX) trading strategy",
+        capabilities=frozenset({"strategy"}),
+    )
 
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:
         del runtime

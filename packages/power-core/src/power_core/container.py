@@ -45,6 +45,7 @@ For example, in a bank application::
         assert uow2 is not uow1                                # distinct per message
 """
 
+import asyncio
 import inspect
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import asynccontextmanager, contextmanager
@@ -97,6 +98,9 @@ class Registration:
     lifetime: Lifetime = Lifetime.SINGLETON
     extra_kwargs: dict[str, Any] = field(default_factory=dict)
     instance: Any = _UNSET  # cached singleton instance
+    #: Serializes concurrent async construction of a singleton/scoped instance so
+    #: it is built exactly once even under ``asyncio.gather``.
+    _lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False, compare=False)
 
 
 class Container:
@@ -321,12 +325,28 @@ class Container:
             if cached is not _UNSET:
                 return cached
 
-        instance = await self._construct_async(reg.interface, reg.implementation, reg.extra_kwargs)
-        if reg.lifetime is Lifetime.SINGLETON:
-            reg.instance = instance
-        elif reg.lifetime is Lifetime.SCOPED:
-            self._scoped_cache[reg.interface] = instance
-        return instance
+        # Singleton and scoped construction is serialized so that concurrent
+        # ``resolve_async`` calls (e.g. under ``asyncio.gather``) build the
+        # instance exactly once and all callers observe the same object.
+        if reg.lifetime is Lifetime.TRANSIENT:
+            return await self._construct_async(reg.interface, reg.implementation, reg.extra_kwargs)
+
+        async with reg._lock:
+            if reg.lifetime is Lifetime.SINGLETON and reg.instance is not _UNSET:
+                return reg.instance
+            if reg.lifetime is Lifetime.SCOPED:
+                cached = self._scoped_cache.get(reg.interface, _UNSET)
+                if cached is not _UNSET:
+                    return cached
+
+            instance = await self._construct_async(
+                reg.interface, reg.implementation, reg.extra_kwargs
+            )
+            if reg.lifetime is Lifetime.SINGLETON:
+                reg.instance = instance
+            else:
+                self._scoped_cache[reg.interface] = instance
+            return instance
 
     def resolve_all(self, interface: Any) -> list[Any]:
         """Resolve every registered implementation of ``interface``.

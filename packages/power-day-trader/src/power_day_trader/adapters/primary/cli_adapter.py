@@ -19,6 +19,15 @@ class CLIAdapter:
         """Inject use case dependency."""
         self._monitor_use_case = monitor_use_case
 
+    async def run(self) -> None:
+        """Run the CLI on the framework's single event loop.
+
+        Click is synchronous, so the CLI is invoked in a worker thread; its
+        ``monitor`` command then runs the async use case on its own loop without
+        colliding with the framework's ambient loop.
+        """
+        await asyncio.to_thread(self.create_cli())
+
     def create_cli(self) -> click.Group:
         """Create Click CLI with commands."""
 

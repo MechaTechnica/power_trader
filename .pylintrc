@@ -1,0 +1,16 @@
+[MASTER]
+
+# Pylint is a secondary linter: ruff (see ruff.toml) is the linter of record,
+# and it does not enable docstring rules (``D``). Align pylint so it does not
+# flag missing docstrings — including on entry-point modules such as ``main.py``
+# and their ``main()`` functions, which expose no public API.
+#
+# If documentation-on-public-API becomes a requirement, enable the ``D`` rules
+# in ruff.toml and remove the corresponding disables below.
+
+[MESSAGES CONTROL]
+
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,

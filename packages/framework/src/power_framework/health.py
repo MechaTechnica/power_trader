@@ -13,6 +13,7 @@ report a :class:`HealthStatus`. The framework aggregates them into a single
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Protocol
@@ -69,14 +70,31 @@ class HealthCheckRegistry:
         return list(self._checks)
 
     async def run_all(self) -> list[HealthStatus]:
-        """Run every registered check, capturing failures rather than raising."""
-        results: list[HealthStatus] = []
-        for check in self._checks:
-            try:
-                results.append(await check.check())
-            except Exception as exc:
-                results.append(HealthStatus.unhealthy(check.name, str(exc)))
-        return results
+        """Run every registered check concurrently, capturing failures.
+
+        Checks run together via ``asyncio.gather`` so a slow dependency (e.g. a
+        200 ms database probe) does not serialize behind other probes. Each
+        check's failure is isolated into an ``unhealthy`` status rather than
+        aborting the whole readiness evaluation.
+        """
+        results = await asyncio.gather(
+            *(self._run_one(check) for check in self._checks),
+            return_exceptions=True,
+        )
+        statuses: list[HealthStatus] = []
+        for check, result in zip(self._checks, results, strict=True):
+            if isinstance(result, BaseException):
+                statuses.append(HealthStatus.unhealthy(check.name, str(result)))
+            else:
+                statuses.append(result)
+        return statuses
+
+    @staticmethod
+    async def _run_one(check: HealthCheck) -> HealthStatus:
+        try:
+            return await check.check()
+        except Exception as exc:
+            return HealthStatus.unhealthy(check.name, str(exc))
 
 
 @dataclass(frozen=True)

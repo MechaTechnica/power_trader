@@ -8,7 +8,6 @@ license = { text = "MIT" }
 
 dependencies = [
     "power-framework",
-    "that-depends>=1.13.0",
 ]
 
 [tool.uv.sources]

@@ -16,12 +16,8 @@ from pathlib import Path
 from typing import ClassVar, TypeVar
 
 from pydantic import Field
-from pydantic_settings import (
-    BaseSettings,
-    JsonConfigSettingsSource,
-    PydanticBaseSettingsSource,
-    SettingsConfigDict,
-)
+from pydantic_settings import (BaseSettings, JsonConfigSettingsSource,
+                               PydanticBaseSettingsSource, SettingsConfigDict)
 
 
 class Environment(StrEnum):
@@ -142,7 +138,15 @@ class FrameworkSettings(Settings):
     )
     plugin_discovery_enabled: bool = Field(
         default=True,
-        description="Whether the plugin registry should auto-discover strategies",
+        description="Whether the plugin registry should auto-discover installed plugins",
+    )
+    enabled_plugins: list[str] | None = Field(
+        default=None,
+        description=(
+            "Explicit allowlist of plugin names to authorize. When None, all "
+            "discovered plugins are authorized; set a list to restrict which "
+            "installed plugins are loaded and executed (discovery != authorization)."
+        ),
     )
     shutdown_timeout_seconds: float = Field(
         default=10.0,
@@ -156,17 +160,21 @@ class FrameworkSettings(Settings):
     )
 
 
-TSettings = TypeVar("TSettings", bound=Settings)
+SettingsT = TypeVar("SettingsT", bound=Settings)
 
 
-def load_settings(settings_type: type[TSettings]) -> TSettings:
+def load_settings(settings_type: type[SettingsT]) -> SettingsT:
     """Load a settings model from environment and optional JSON file.
 
     This is the framework's single configuration entry point. Applications
     declare their settings type (via ``Plugin.settings_class``) and the
     framework loads it, rather than each plugin instantiating its own settings
     and re-inventing precedence rules.
-    """
+    
+    Follow up for this method could be:
+     _apply_secret_provider(settings)    # resolve refs from Key Vault
+     _validate_for_environment(settings) # fail fast in prod
+     """
     return settings_type()
 
 

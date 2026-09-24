@@ -40,7 +40,7 @@ dev = [
 ]
 
 [project.scripts]
-power-day-trader = "power_day_trader.main:cli"
+power-day-trader = "power_day_trader.main:main"
 
 [project.entry-points."power.plugins"]
 "application.power-day-trader" = "power_day_trader.plugin:PowerDayTraderPlugin"

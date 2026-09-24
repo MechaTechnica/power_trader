@@ -29,9 +29,11 @@ import asyncio
 import functools
 import inspect
 import time
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar, cast
 
 from power_framework.exceptions import InfrastructureError
+from power_framework.observability import AuditEvent, AuditSink
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Coroutine, Sequence
@@ -119,12 +121,33 @@ def intercept(
     return decorator
 
 
+class OperationKind(StrEnum):
+    """Classifies an operation for retry-safety.
+
+    - ``READ``: safe to retry (no side effects).
+    - ``IDEMPOTENT``: safe to retry because the operation carries an idempotency
+      key, so a duplicate submission is deduplicated by the receiver.
+    - ``WRITE``: *not* safe to retry blindly — a retry may duplicate a
+      side effect (e.g. submitting an order twice). Only retry writes that are
+      idempotent (with an idempotency key).
+    """
+
+    READ = "read"
+    IDEMPOTENT = "idempotent"
+    WRITE = "write"
+
+
 class RetryInterceptor:
     """Retry the invocation on transient (retryable) failures.
 
     By default it retries :class:`~power_framework.exceptions.InfrastructureError`
     (and subclasses), which the framework classifies as transient. ``retry_on``
     narrows or widens the set of exceptions that trigger a retry.
+
+    Retry semantics are *operation-aware*: ``operation_kind`` documents whether
+    the operation is safe to retry. A ``WRITE`` operation should only be retried
+    when it is idempotent (carries an idempotency key), otherwise a retry can
+    duplicate a financial side effect (e.g. submitting an order twice).
     """
 
     def __init__(
@@ -133,12 +156,14 @@ class RetryInterceptor:
         *,
         delay_seconds: float = 0.0,
         retry_on: type[BaseException] | tuple[type[BaseException], ...] = InfrastructureError,
+        operation_kind: OperationKind = OperationKind.READ,
     ) -> None:
         if max_attempts < 1:
             raise ValueError("max_attempts must be >= 1")
         self._max_attempts = max_attempts
         self._delay_seconds = delay_seconds
         self._retry_on = retry_on
+        self._operation_kind = operation_kind
 
     async def around(
         self,
@@ -186,10 +211,21 @@ class ObserveInterceptor:
 
 
 class AuditInterceptor:
-    """Emit an audit event on each invocation (entry and completion)."""
+    """Emit an audit event on each invocation (entry and completion).
 
-    def __init__(self, logger: Logger | None = None) -> None:
+    Audit records are a *separate* concern from operational logs. When an
+    :class:`~power_framework.observability.AuditSink` is supplied, immutable
+    :class:`~power_framework.observability.AuditEvent` records are written to it;
+    otherwise the interceptor falls back to ``logger.audit`` for convenience.
+    """
+
+    def __init__(
+        self,
+        logger: Logger | None = None,
+        audit_sink: AuditSink | None = None,
+    ) -> None:
         self._logger = logger
+        self._audit_sink = audit_sink
 
     async def around(
         self,
@@ -198,12 +234,16 @@ class AuditInterceptor:
         *args: Any,
         **kwargs: Any,
     ) -> Any:
-        if self._logger is not None:
-            self._logger.audit("function_invoked", function=name)
+        await self._record(name, "function_invoked")
         result = await proceed(*args, **kwargs)
-        if self._logger is not None:
-            self._logger.audit("function_completed", function=name)
+        await self._record(name, "function_completed")
         return result
+
+    async def _record(self, name: str, event: str) -> None:
+        if self._audit_sink is not None:
+            await self._audit_sink.record(AuditEvent(action=f"{name}.{event}"))
+        elif self._logger is not None:
+            self._logger.audit(event, function=name)
 
 
 def retry(
@@ -211,6 +251,7 @@ def retry(
     *,
     delay_seconds: float = 0.0,
     retry_on: type[BaseException] | tuple[type[BaseException], ...] = InfrastructureError,
+    operation_kind: OperationKind = OperationKind.READ,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorate a function to retry transient failures.
 
@@ -219,8 +260,18 @@ def retry(
         @retry(max_attempts=3)
         async def publish(event: DomainEvent) -> None:
             ...
+
+    ``operation_kind`` documents retry-safety: only retry ``WRITE`` operations
+    when they are idempotent (carry an idempotency key).
     """
-    return intercept(RetryInterceptor(max_attempts, delay_seconds=delay_seconds, retry_on=retry_on))
+    return intercept(
+        RetryInterceptor(
+            max_attempts,
+            delay_seconds=delay_seconds,
+            retry_on=retry_on,
+            operation_kind=operation_kind,
+        )
+    )
 
 
 def observed(logger: Logger | None = None) -> Callable[[Callable[P, R]], Callable[P, R]]:
@@ -251,6 +302,7 @@ __all__ = [
     "AuditInterceptor",
     "Interceptor",
     "ObserveInterceptor",
+    "OperationKind",
     "RetryInterceptor",
     "audited",
     "intercept",
