@@ -16,8 +16,8 @@ from power_day_trader.health import (IBConnectionCheck, MarketDataCheck,
 from power_framework.container import Container
 from power_framework.events import EventBus
 from power_framework.health import HealthCheckRegistry
+from power_framework.output import OutputPresenter
 from power_framework.plugins import Plugin
-from power_framework.protocols.output import OutputPresenter
 from power_market.events import SignalGenerated
 from power_market.protocols.data import MarketDataProvider
 from power_market.protocols.output import SignalPresenter

@@ -9,10 +9,10 @@ The harness automatically substitutes the framework's defaults with in-memory,
 *capturable* fakes:
 
 - **captured events** — every event published to the (fake) event bus is recorded.
-- **captured metrics** — an :class:`~power_framework.observability.InMemoryMetrics`
-  whose counters/gauges/histograms can be asserted on.
-- **captured spans** — an :class:`~power_framework.observability.InMemoryTracer`
-  recording every traced operation.
+- **captured metrics** — a :class:`RecordingMetrics` fake whose counters/gauges/
+  histograms can be asserted on.
+- **captured spans** — a :class:`RecordingTracer` fake recording every traced
+  operation.
 
 For application-specific adapters (a database, a message bus, configuration), a
 test supplies its own fake via :meth:`ApplicationTestHarness.replace`.
@@ -27,27 +27,103 @@ Usage::
 """
 
 import asyncio
+import uuid
+from collections import defaultdict
 from typing import Any, Literal, Self
 
 from power_framework.application import (ApplicationBase,
                                          ApplicationBootstrapper,
                                          ApplicationBuilder, Runtime)
-from power_framework.events import Event, EventBus, InMemoryEventBus
-from power_framework.observability import (InMemoryMetrics, InMemoryTracer,
-                                           Metrics, Tracer)
+from power_framework.events import Event, EventBus, EventHandler, HandlerSpec
+from power_framework.observability import (Metrics, Span, Tracer,
+                                           current_trace_id)
 
 
-class RecordingEventBus(InMemoryEventBus):
-    """An in-memory event bus that also records every published event."""
+class RecordingEventBus:
+    """An in-memory event bus (test fake) that records every published event.
 
-    def __init__(self, on_error: Any = None) -> None:
-        super().__init__(on_error=on_error)
+    A minimal, self-contained ``EventBus`` owned by the framework's test
+    harness. Unlike the production transports in ``power_core.events``, it only
+    records published events and fans them out to matching subscribers — no
+    retry, concurrency, or context stamping.
+    """
+
+    def __init__(self) -> None:
+        self._subscribers: dict[type[Any], list[EventHandler]] = defaultdict(list)
         self.published: list[Event] = []
 
+    def subscribe(self, event_type: type[Any], handler: EventHandler) -> None:
+        self._subscribers[event_type].append(handler)
+
+    def register(self, spec: HandlerSpec) -> None:
+        self._subscribers[spec.event_type].append(spec.handler)
+
     async def publish(self, event: Event) -> None:
-        """Record ``event``, then fan it out to subscribers."""
+        """Record ``event``, then fan it out to matching subscribers."""
         self.published.append(event)
-        await super().publish(event)
+        for subscribed_type, handlers in self._subscribers.items():
+            if issubclass(type(event), subscribed_type):
+                for handler in handlers:
+                    await handler.handle(event)
+
+
+class RecordingMetrics:
+    """A minimal in-memory ``Metrics`` fake that records values for assertions.
+
+    A self-contained capture store owned by the framework's test harness (the
+    production store lives in ``power_core.observability.InMemoryMetrics``).
+    """
+
+    def __init__(self) -> None:
+        self._counters: dict[tuple[Any, ...], int] = defaultdict(int)
+        self._gauges: dict[tuple[Any, ...], float] = {}
+        self._histograms: dict[tuple[Any, ...], list[float]] = defaultdict(list)
+
+    @staticmethod
+    def _key(name: str, labels: dict[str, Any]) -> tuple[Any, ...]:
+        return (name, *sorted(labels.items()))
+
+    def increment(self, name: str, value: int = 1, **labels: Any) -> None:
+        self._counters[self._key(name, labels)] += value
+
+    def gauge(self, name: str, value: float, **labels: Any) -> None:
+        self._gauges[self._key(name, labels)] = value
+
+    def histogram(self, name: str, value: float, **labels: Any) -> None:
+        self._histograms[self._key(name, labels)].append(value)
+
+    def counter_value(self, name: str, **labels: Any) -> int:
+        return self._counters[self._key(name, labels)]
+
+    def gauge_value(self, name: str, **labels: Any) -> float:
+        return self._gauges[self._key(name, labels)]
+
+    def histogram_values(self, name: str, **labels: Any) -> list[float]:
+        return list(self._histograms[self._key(name, labels)])
+
+
+class RecordingTracer:
+    """A minimal in-memory ``Tracer`` fake that records spans for assertions.
+
+    A self-contained capture store owned by the framework's test harness (the
+    production store lives in ``power_core.observability.InMemoryTracer``).
+    """
+
+    def __init__(self) -> None:
+        self._spans: list[Span] = []
+
+    def start_span(self, name: str, **attributes: Any) -> Span:
+        span = Span(
+            name=name,
+            trace_id=current_trace_id() or str(uuid.uuid4()),
+            attributes=dict(attributes),
+        )
+        self._spans.append(span)
+        return span
+
+    @property
+    def spans(self) -> list[Span]:
+        return list(self._spans)
 
 
 class TestApplicationBuilder(ApplicationBuilder):
@@ -105,8 +181,8 @@ class ApplicationTestHarness:
         self._application_class = application_class
         self._module_overrides: list[tuple[Any, Any]] = []
 
-        self.metrics: InMemoryMetrics = InMemoryMetrics()
-        self.tracer: InMemoryTracer = InMemoryTracer()
+        self.metrics: RecordingMetrics = RecordingMetrics()
+        self.tracer: RecordingTracer = RecordingTracer()
         self.event_bus: RecordingEventBus = RecordingEventBus()
 
         # Framework fakes are substituted *before* plugins wire, so plugins that

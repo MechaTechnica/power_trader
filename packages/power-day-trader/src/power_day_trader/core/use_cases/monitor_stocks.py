@@ -2,7 +2,7 @@
 
 from power_day_trader.core.strategy_registry import StrategyRegistry
 from power_framework.events import EventBus
-from power_framework.protocols.output import OutputPresenter
+from power_framework.output import OutputPresenter
 from power_market.events import MarketDataReceived, SignalGenerated
 from power_market.protocols.data import MarketDataProvider
 from power_market.protocols.output import SignalPresenter

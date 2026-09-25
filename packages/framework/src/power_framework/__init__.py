@@ -18,21 +18,19 @@ from power_framework.aspects import (AuditInterceptor, Interceptor,
 from power_framework.container import Container, Lifetime
 from power_framework.events import (Concurrency, DomainEvent, DurableEventBus,
                                     Event, EventBus, EventHandler, HandlerSpec,
-                                    InMemoryEventBus, QueuedEventBus,
                                     RetryPolicy, event_handler)
 from power_framework.exceptions import (ApplicationError, FrameworkError,
                                         InfrastructureError, is_retryable)
 from power_framework.health import (HealthCheck, HealthCheckRegistry,
                                     HealthReport, HealthService, HealthStatus,
                                     Status)
-from power_framework.observability import (AuditEvent, AuditSink,
-                                           InMemoryAuditSink, InMemoryMetrics,
-                                           InMemoryTracer, Logger, Metrics,
-                                           Redacted, Secret, Span,
+from power_framework.observability import (AuditEvent, AuditSink, Logger,
+                                           Metrics, Redacted, Secret, Span,
                                            TerminalLogger, Tracer,
                                            correlation_scope,
                                            current_correlation_id,
-                                           current_trace_id)
+                                           current_span, current_trace_id)
+from power_framework.output import OutputPresenter
 from power_framework.plugins import Plugin, PluginMetadata
 from power_framework.settings import (Environment, FrameworkSettings, LogLevel,
                                       Settings, TelemetrySettings,
@@ -64,10 +62,6 @@ __all__ = [
     "HealthReport",
     "HealthService",
     "HealthStatus",
-    "InMemoryAuditSink",
-    "InMemoryEventBus",
-    "InMemoryMetrics",
-    "InMemoryTracer",
     "InfrastructureError",
     "Interceptor",
     "Lifetime",
@@ -76,9 +70,9 @@ __all__ = [
     "Metrics",
     "ObserveInterceptor",
     "OperationKind",
+    "OutputPresenter",
     "Plugin",
     "PluginMetadata",
-    "QueuedEventBus",
     "Redacted",
     "RetryInterceptor",
     "RetryPolicy",
@@ -94,6 +88,7 @@ __all__ = [
     "audited",
     "correlation_scope",
     "current_correlation_id",
+    "current_span",
     "current_trace_id",
     "event_handler",
     "intercept",

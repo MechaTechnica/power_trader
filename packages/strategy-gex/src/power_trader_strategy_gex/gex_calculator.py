@@ -211,33 +211,33 @@ class GEXCalculator:
         self, gex_by_strike: dict[Decimal, tuple[float, float, float]]
     ) -> Decimal | None:
         """
-        Find the strike where cumulative GEX changes from positive to negative.
+        Find the strike where GEX flips sign (the "gamma flip point").
 
-        This is often called the "gamma flip point" and represents a key level.
+        Scanning strikes in ascending order, return the first strike whose total
+        GEX changes from positive to negative (or negative to positive). This is
+        a key level where dealer positioning flips.
 
         Args:
             gex_by_strike: GEX aggregated by strike
 
         Returns:
-            Strike price of zero gamma level, or None if not found
+            Strike price of the gamma flip level, or None if not found
         """
         strikes_sorted = sorted(gex_by_strike.keys())
 
-        cumulative_gex = 0.0
-        prev_cumulative = None
+        prev_gex: float | None = None
 
         for strike in strikes_sorted:
             total_gex = gex_by_strike[strike][0]
-            cumulative_gex += total_gex
 
-            # Return the strike where the cumulative GEX crosses zero.
-            if prev_cumulative is not None and (
-                (prev_cumulative > 0 and cumulative_gex < 0)
-                or (prev_cumulative < 0 and cumulative_gex > 0)
+            # Return the strike where the total GEX crosses zero.
+            if prev_gex is not None and (
+                (prev_gex > 0 and total_gex < 0)
+                or (prev_gex < 0 and total_gex > 0)
             ):
                 return strike
 
-            prev_cumulative = cumulative_gex
+            prev_gex = total_gex
 
         return None
 

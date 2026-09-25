@@ -8,19 +8,19 @@ application needs. Applications never build these themselves.
 from typing import Any
 
 from power_core.container import Container
-from power_core.observability import OpenTelemetryTracer, StructuredLogger
+from power_core.events import InMemoryEventBus
+from power_core.health import HealthCheckRegistry, HealthService
+from power_core.observability import (InMemoryAuditSink, InMemoryMetrics,
+                                      OpenTelemetryTracer, StructuredLogger)
 from power_core.observability import TerminalLogger as TerminalLoggerImpl
-from power_framework.events import Event, EventBus, InMemoryEventBus
-from power_framework.health import HealthCheckRegistry, HealthService
-from power_framework.observability import (
-    AuditSink,
-    InMemoryAuditSink,
-    InMemoryMetrics,
-    Logger,
-    Metrics,
-    TerminalLogger,
-    Tracer,
-)
+from power_core.runtime import Runtime
+from power_framework.application import Runtime as RuntimeContract
+from power_framework.events import Event, EventBus
+from power_framework.health import \
+    HealthCheckRegistry as HealthCheckRegistryContract
+from power_framework.health import HealthService as HealthServiceContract
+from power_framework.observability import (AuditSink, Logger, Metrics,
+                                           TerminalLogger, Tracer)
 from power_framework.settings import FrameworkSettings, load_settings
 
 
@@ -62,6 +62,11 @@ def create_container(
     settings = load_settings(FrameworkSettings)
     container.register_instance(FrameworkSettings, settings)
 
+    # Lifecycle: the runtime owns the application run loop (start -> run -> stop)
+    # and its shutdown timeout is driven by the framework settings.
+    runtime = Runtime(shutdown_timeout_seconds=settings.shutdown_timeout_seconds)
+    container.register_instance(RuntimeContract, runtime)
+
     # structured logger is for logging the application state
     # you can use this to log to permanent storage (i.e cosmos db)
     logger = StructuredLogger(
@@ -82,8 +87,8 @@ def create_container(
 
     # Health/readiness: applications register their own dependency checks.
     health_registry = HealthCheckRegistry()
-    container.register_instance(HealthCheckRegistry, health_registry)
-    container.register_instance(HealthService, HealthService(health_registry))
+    container.register_instance(HealthCheckRegistryContract, health_registry)
+    container.register_instance(HealthServiceContract, HealthService(health_registry))
 
     # Events: one shared bus; handler failures are logged, not raised, so a
     # failing subscriber never takes down the whole pipeline.

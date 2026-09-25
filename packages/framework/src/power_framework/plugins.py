@@ -28,7 +28,7 @@ class PluginMetadata:
 
 
 class Plugin(ABC):
-    """Base class for plugins (strategies and applications).
+    """Base class for plugins.
 
     Plugins are intentionally small composition units. They declare their
     identity via :attr:`metadata` and their configuration model via

@@ -3,7 +3,7 @@
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_framework.application import ApplicationBase
 from power_framework.observability import Logger, TerminalLogger
-from power_framework.protocols.output import OutputPresenter
+from power_framework.output import OutputPresenter
 
 
 class PowerDayTraderApplication(ApplicationBase):

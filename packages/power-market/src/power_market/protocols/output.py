@@ -12,7 +12,7 @@ class SignalPresenter(Protocol):
 
     This is the *domain-specific* presentation concern. Generic status,
     warning, and error reporting live in
-    ``power_framework.protocols.output.OutputPresenter``; concrete adapters may
+    ``power_framework.output.OutputPresenter``; concrete adapters may
     implement both protocols.
     """
 

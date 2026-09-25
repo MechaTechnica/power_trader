@@ -1,15 +1,15 @@
 """Framework observability contracts.
 
 This module owns the *contracts* (protocols and value types) for structured
-logging, metrics, tracing, and audit — plus the in-memory fakes used by the test
-harness and the ambient correlation/trace context they all share.
+logging, metrics, tracing, and audit, plus the ambient correlation/trace context
+they all share.
 
-Concrete production implementations (the JSON ``StructuredLogger``, the
-human-readable ``TerminalLogger``, the OpenTelemetry-backed tracer, and the
-:func:`redact` engine) live in ``power_core.observability``. The framework stays
-a pure contract layer so it can remain a dependency of everything without
-dragging implementation details (stdlib logging, OTel adapters) into every
-consumer.
+Concrete implementations (the JSON ``StructuredLogger``, the human-readable
+``TerminalLogger``, the OpenTelemetry-backed tracer, the :func:`redact` engine,
+and the in-memory metrics/tracer/audit stores) live in
+``power_core.observability``. The framework stays a pure contract layer so it can
+remain a dependency of everything without dragging implementation details
+(stdlib logging, OTel adapters) into every consumer.
 
 The guarantee the framework adds is *automatic context injection*: when an
 application logs a structured event::
@@ -36,7 +36,6 @@ while :class:`AuditSink` records immutable, tamper-evident audit events.
 
 import time
 import uuid
-from collections import defaultdict
 from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -61,6 +60,11 @@ def current_correlation_id() -> str | None:
 def current_trace_id() -> str | None:
     """Return the ambient trace ID, if any."""
     return _trace_id_var.get()
+
+
+def current_span() -> Any:
+    """Return the ambient (innermost) span, if any."""
+    return _current_span_var.get()
 
 
 @contextmanager
@@ -182,20 +186,6 @@ class AuditSink(Protocol):
         ...
 
 
-class InMemoryAuditSink:
-    """A process-local audit sink for testing/single-node use."""
-
-    def __init__(self) -> None:
-        self._events: list[AuditEvent] = []
-
-    async def record(self, event: AuditEvent) -> None:
-        self._events.append(event)
-
-    @property
-    def events(self) -> list[AuditEvent]:
-        return list(self._events)
-
-
 # ---------------------------------------------------------------------------
 # Metrics
 # ---------------------------------------------------------------------------
@@ -209,41 +199,6 @@ class Metrics(Protocol):
     def gauge(self, name: str, value: float, **labels: Any) -> None: ...
 
     def histogram(self, name: str, value: float, **labels: Any) -> None: ...
-
-
-class InMemoryMetrics:
-    """A process-local metrics store for testing/single-node use.
-
-    Production deployments would swap this for a Prometheus/OTLP exporter, but
-    the *shape* (names + labels) stays identical.
-    """
-
-    def __init__(self) -> None:
-        self._counters: dict[tuple[Any, ...], int] = defaultdict(int)
-        self._gauges: dict[tuple[Any, ...], float] = {}
-        self._histograms: dict[tuple[Any, ...], list[float]] = defaultdict(list)
-
-    @staticmethod
-    def _key(name: str, labels: dict[str, Any]) -> tuple[Any, ...]:
-        return (name, *sorted(labels.items()))
-
-    def increment(self, name: str, value: int = 1, **labels: Any) -> None:
-        self._counters[self._key(name, labels)] += value
-
-    def gauge(self, name: str, value: float, **labels: Any) -> None:
-        self._gauges[self._key(name, labels)] = value
-
-    def histogram(self, name: str, value: float, **labels: Any) -> None:
-        self._histograms[self._key(name, labels)].append(value)
-
-    def counter_value(self, name: str, **labels: Any) -> int:
-        return self._counters[self._key(name, labels)]
-
-    def gauge_value(self, name: str, **labels: Any) -> float:
-        return self._gauges[self._key(name, labels)]
-
-    def histogram_values(self, name: str, **labels: Any) -> list[float]:
-        return list(self._histograms[self._key(name, labels)])
 
 
 # ---------------------------------------------------------------------------
@@ -300,42 +255,9 @@ class Tracer(Protocol):
     def start_span(self, name: str, **attributes: Any) -> Span: ...
 
 
-class InMemoryTracer:
-    """A process-local tracer that records spans and propagates trace IDs.
-
-    The trace ID is taken from the ambient context when present, otherwise a
-    fresh one is minted, keeping spans grouped under the same trace. The current
-    span is tracked via a :class:`ContextVar`, so concurrent tasks each see their
-    own parent span rather than a shared process-global one.
-    """
-
-    def __init__(self) -> None:
-        self._spans: list[Span] = []
-
-    def start_span(self, name: str, **attributes: Any) -> Span:
-        trace_id = current_trace_id() or str(uuid.uuid4())
-        parent = _current_span_var.get()
-        span = Span(
-            name=name,
-            trace_id=trace_id,
-            parent_id=parent.span_id if parent is not None else None,
-            attributes=dict(attributes),
-        )
-        self._spans.append(span)
-        return span
-
-    @property
-    def spans(self) -> list[Span]:
-        """All spans started by this tracer, in creation order."""
-        return list(self._spans)
-
-
 __all__ = [
     "AuditEvent",
     "AuditSink",
-    "InMemoryAuditSink",
-    "InMemoryMetrics",
-    "InMemoryTracer",
     "Logger",
     "Metrics",
     "Redacted",
@@ -345,5 +267,6 @@ __all__ = [
     "Tracer",
     "correlation_scope",
     "current_correlation_id",
+    "current_span",
     "current_trace_id",
 ]

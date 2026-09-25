@@ -2,9 +2,11 @@
 
 from datetime import datetime
 
+from power_core.events import InMemoryEventBus
 from power_day_trader.core.event_handlers import SignalToOrderHandler
-from power_framework.events import Event, InMemoryEventBus
-from power_market.events import OrderFilled, OrderRequested, OrderSubmitted, SignalGenerated
+from power_framework.events import Event
+from power_market.events import (OrderFilled, OrderRequested, OrderSubmitted,
+                                 SignalGenerated)
 from power_market.types.market import TickerSymbol
 from power_market.types.signals import Signal, SignalIntent, SignalSource
 

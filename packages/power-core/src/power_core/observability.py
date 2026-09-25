@@ -2,24 +2,28 @@
 
 ``power_framework.observability`` declares the contracts (``Logger``, ``Metrics``,
 ``Tracer``, ``AuditSink`` and their value types). This module provides the real
-production implementations:
+implementations:
 
 - :class:`StructuredLogger` — emits one JSON object per event via stdlib logging.
 - :class:`TerminalLogger` — human-readable console output.
 - :class:`OpenTelemetryTracer` — delegates to OpenTelemetry when installed,
   falling back to the in-memory tracer otherwise.
+- :class:`InMemoryMetrics` / :class:`InMemoryAuditSink` / :class:`InMemoryTracer` —
+  the process-local stores used as the runtime's defaults and by tests.
 - :func:`redact` — the sensitive-field redaction engine used by both loggers.
 """
 
 import json
 import logging
 import sys
+import uuid
+from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any, Self
 
-from power_framework.observability import (InMemoryTracer, Secret, Span,
+from power_framework.observability import (AuditEvent, Secret, Span,
                                            current_correlation_id,
-                                           current_trace_id)
+                                           current_span, current_trace_id)
 
 # OpenTelemetry is an optional dependency: import it lazily at module scope so
 # the runtime runs without it, but adapts to the existing OTel stack when present.
@@ -203,7 +207,91 @@ class TerminalLogger:
 
 
 # ---------------------------------------------------------------------------
-# Tracing
+# In-memory metrics / audit / tracing (process-local defaults)
+# ---------------------------------------------------------------------------
+
+
+class InMemoryMetrics:
+    """A process-local metrics store used as the runtime's default.
+
+    Production deployments would swap this for a Prometheus/OTLP exporter, but
+    the *shape* (names + labels) stays identical.
+    """
+
+    def __init__(self) -> None:
+        self._counters: dict[tuple[Any, ...], int] = defaultdict(int)
+        self._gauges: dict[tuple[Any, ...], float] = {}
+        self._histograms: dict[tuple[Any, ...], list[float]] = defaultdict(list)
+
+    @staticmethod
+    def _key(name: str, labels: dict[str, Any]) -> tuple[Any, ...]:
+        return (name, *sorted(labels.items()))
+
+    def increment(self, name: str, value: int = 1, **labels: Any) -> None:
+        self._counters[self._key(name, labels)] += value
+
+    def gauge(self, name: str, value: float, **labels: Any) -> None:
+        self._gauges[self._key(name, labels)] = value
+
+    def histogram(self, name: str, value: float, **labels: Any) -> None:
+        self._histograms[self._key(name, labels)].append(value)
+
+    def counter_value(self, name: str, **labels: Any) -> int:
+        return self._counters[self._key(name, labels)]
+
+    def gauge_value(self, name: str, **labels: Any) -> float:
+        return self._gauges[self._key(name, labels)]
+
+    def histogram_values(self, name: str, **labels: Any) -> list[float]:
+        return list(self._histograms[self._key(name, labels)])
+
+
+class InMemoryAuditSink:
+    """A process-local audit sink used as the runtime's default."""
+
+    def __init__(self) -> None:
+        self._events: list[AuditEvent] = []
+
+    async def record(self, event: AuditEvent) -> None:
+        self._events.append(event)
+
+    @property
+    def events(self) -> list[AuditEvent]:
+        return list(self._events)
+
+
+class InMemoryTracer:
+    """A process-local tracer that records spans and propagates trace IDs.
+
+    The trace ID is taken from the ambient context when present, otherwise a
+    fresh one is minted, keeping spans grouped under the same trace. The current
+    span is tracked via a :class:`ContextVar`, so concurrent tasks each see their
+    own parent span rather than a shared process-global one.
+    """
+
+    def __init__(self) -> None:
+        self._spans: list[Span] = []
+
+    def start_span(self, name: str, **attributes: Any) -> Span:
+        trace_id = current_trace_id() or str(uuid.uuid4())
+        parent = current_span()
+        span = Span(
+            name=name,
+            trace_id=trace_id,
+            parent_id=parent.span_id if parent is not None else None,
+            attributes=dict(attributes),
+        )
+        self._spans.append(span)
+        return span
+
+    @property
+    def spans(self) -> list[Span]:
+        """All spans started by this tracer, in creation order."""
+        return list(self._spans)
+
+
+# ---------------------------------------------------------------------------
+# Tracing (OpenTelemetry adapter)
 # ---------------------------------------------------------------------------
 
 
@@ -250,6 +338,9 @@ class _OtelSpanAdapter:
 
 
 __all__ = [
+    "InMemoryAuditSink",
+    "InMemoryMetrics",
+    "InMemoryTracer",
     "OpenTelemetryTracer",
     "StructuredLogger",
     "TerminalLogger",

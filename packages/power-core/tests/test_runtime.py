@@ -1,6 +1,7 @@
-"""Tests for the application run-loop owner."""
+"""Tests for the concrete application run-loop owner."""
 
-from power_framework.application import ApplicationBase, Runtime
+from power_core.runtime import Runtime
+from power_framework.application import ApplicationBase
 
 
 class _TestApplication(ApplicationBase):

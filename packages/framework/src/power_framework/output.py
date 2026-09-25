@@ -1,4 +1,4 @@
-"""Generic output/presentation protocols (domain-agnostic)."""
+"""Domain-agnostic output/presentation contract."""
 
 from typing import Protocol
 
@@ -12,8 +12,7 @@ class OutputPresenter(Protocol):
     """
 
     async def present_error(self, error: Exception) -> None:
-        """
-        Present an error to the user.
+        """Present an error to the user.
 
         Args:
             error: Exception that occurred
@@ -21,8 +20,7 @@ class OutputPresenter(Protocol):
         ...
 
     async def present_status(self, message: str) -> None:
-        """
-        Present a status message to the user.
+        """Present a status message to the user.
 
         Args:
             message: Status message (e.g., "Connected to broker")
@@ -30,10 +28,14 @@ class OutputPresenter(Protocol):
         ...
 
     async def present_warning(self, message: str) -> None:
-        """
-        Present a warning message to the user.
+        """Present a warning to the user.
 
         Args:
             message: Warning message
         """
         ...
+
+
+__all__ = [
+    "OutputPresenter",
+]

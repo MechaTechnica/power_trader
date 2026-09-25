@@ -1,6 +1,5 @@
-import asyncio
 from collections.abc import Callable
-from typing import Any, Self
+from typing import Any, Protocol, Self
 
 from power_framework.container import Container
 from power_framework.exceptions import FrameworkError
@@ -24,82 +23,48 @@ class ApplicationBase:
     """Base class for an application's lifecycle and run entry point."""
 
     async def start(self) -> None:
-        return None
+        pass
 
     async def stop(self) -> None:
-        return None
+        pass
 
     async def run(self) -> None:
-        return None
+        pass
 
 
-class Runtime:
-    """Owns the application run loop on a single event loop."""
+class Runtime(Protocol):
+    """Contract for the application run-loop owner.
 
-    def __init__(self, *, shutdown_timeout_seconds: float | None = None) -> None:
-        self._application: ApplicationBase | None = None
-        self._shutdown_timeout_seconds = shutdown_timeout_seconds
-
-    def attach(self, application: ApplicationBase) -> None:
-        """Attach the resolved application."""
-        self._application = application
+    The framework knows only this interface; the concrete ``Runtime``
+    implementation (which owns the event loop and drives ``start`` -> ``run`` ->
+    ``stop``) lives in ``power_core.runtime`` and is registered in the container
+    by the runtime's ``create_container`` entry point.
+    """
 
     @property
     def application(self) -> ApplicationBase:
-        application = self._application
-        if application is None:
-            raise FrameworkError("No application has been attached to the runtime.")
-        return application
+        """The attached application."""
+        ...
+
+    def attach(self, application: ApplicationBase) -> None:
+        """Attach the resolved application."""
+        ...
 
     async def start(self) -> None:
         """Start the application."""
-        try:
-            await self.application.start()
-        except Exception as exc:
-            raise FrameworkError(f"Failed to start application: {exc}") from exc
+        ...
 
     async def stop(self) -> None:
         """Stop the application, optionally bounded by the shutdown timeout."""
-        try:
-            await self._stop_component(self.application, "application")
-        except Exception as exc:
-            raise FrameworkError(f"Failed to stop application: {exc}") from exc
-
-    async def _stop_component(self, component: Any, name: str) -> None:
-        """Stop ``component``, optionally bounded by the shutdown timeout."""
-        if self._shutdown_timeout_seconds is None:
-            await component.stop()
-            return
-        try:
-            await asyncio.wait_for(
-                component.stop(),
-                timeout=self._shutdown_timeout_seconds,
-            )
-        except TimeoutError as exc:
-            raise FrameworkError(
-                f"Timed out stopping '{name}' after {self._shutdown_timeout_seconds}s"
-            ) from exc
+        ...
 
     def run(self) -> None:
-        """Run the application to completion, owning the event loop.
-
-        This is the synchronous public entry point for application developers.
-        Use run_async to run your application aynchronously
-        """
-        asyncio.run(self.run_async())
+        """Run the application to completion, owning the event loop."""
+        ...
 
     async def run_async(self) -> None:
-        """Run the application on the ambient event loop.
-
-        Use this when the framework is *embedded* inside an already-running event
-        loop (another async application, a notebook, or an async test runner),
-        where creating a second loop via :meth:`run` would be incorrect.
-        """
-        await self.start()
-        try:
-            await self.application.run()
-        finally:
-            await self.stop()
+        """Run the application on the ambient event loop."""
+        ...
 
 
 class ApplicationBootstrapper:
@@ -210,9 +175,7 @@ class ApplicationBootstrapper:
         """
         container = self._load_core_container(framework_overrides)
         settings = container.resolve(FrameworkSettings)
-        runtime = Runtime(
-            shutdown_timeout_seconds=settings.shutdown_timeout_seconds,
-        )
+        runtime = container.resolve(Runtime)
 
         # Effective allowlist: explicit builder allowlist wins; otherwise fall
         # back to the configured allowlist (discovery != authorization).
