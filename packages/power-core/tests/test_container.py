@@ -4,10 +4,9 @@ import asyncio
 from typing import Protocol
 
 import pytest
-
 from power_core.container import Container
+from power_framework.container import Lifetime
 from power_framework.exceptions import FrameworkError
-from power_framework.protocols.container import Lifetime
 
 
 class Service(Protocol):

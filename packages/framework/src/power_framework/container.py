@@ -1,8 +1,10 @@
-"""Dependency injection container protocol."""
+"""Dependency injection container abstract base class and binding lifetime."""
 
-from collections.abc import AsyncIterator, Callable, Iterator
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager, AbstractContextManager
 from enum import StrEnum
-from typing import Any, Protocol, TypeVar, overload
+from typing import Any, TypeVar, overload
 
 T_co = TypeVar("T_co", covariant=True)
 
@@ -20,13 +22,14 @@ class Lifetime(StrEnum):
     """A fresh instance on every resolve."""
 
 
-class Container(Protocol):
+class Container(ABC):
     """
-    Protocol for a dependency injection container.
+    Abstract base for a dependency injection container.
 
     Concrete implementations (e.g. ``power_core.container.Container``)
-    satisfy this protocol structurally. Applications depend on this protocol
-    so they never need to import a concrete container implementation.
+    subclass this ABC, so a missing member is caught at import time rather than
+    silently at a call site. Applications depend on this ABC so they never need
+    to import a concrete container implementation.
 
     Containers form a hierarchy: the root is the *application scope* and
     :meth:`create_child` (or the :meth:`scope` context managers) produce
@@ -37,9 +40,11 @@ class Container(Protocol):
     """
 
     @property
+    @abstractmethod
     def name(self) -> str:
         """The human-readable name of this container/scope."""
 
+    @abstractmethod
     def create_child(self, name: str = "child") -> "Container":
         """Create a child scope that falls back to this container for lookups.
 
@@ -79,6 +84,7 @@ class Container(Protocol):
     ) -> None:
         """Register a concrete type to itself."""
 
+    @abstractmethod
     def register(
         self,
         interface: Any,
@@ -98,9 +104,11 @@ class Container(Protocol):
         """Register an already-constructed instance."""
         ...
 
+    @abstractmethod
     def register_instance(self, interface: Any, instance: Any) -> None:
         """Register an already-constructed instance or a lazy factory."""
 
+    @abstractmethod
     def override(self, interface: Any, instance: Any) -> None:
         """Replace any registration for ``interface`` with an instance.
 
@@ -109,6 +117,7 @@ class Container(Protocol):
         installed adapter for a fake without editing production wiring.
         """
 
+    @abstractmethod
     def validate(self, *roots: Any) -> None:
         """Validate that every root's dependency graph is fully resolvable.
 
@@ -116,6 +125,7 @@ class Container(Protocol):
         human-readable tree in the message.
         """
 
+    @abstractmethod
     def validate_report(self, *roots: Any) -> str:
         """Return the validation report for ``*roots`` as a formatted string."""
 
@@ -125,9 +135,11 @@ class Container(Protocol):
     @overload
     def resolve(self, interface: type[Any]) -> Any: ...
 
+    @abstractmethod
     def resolve(self, interface: type[Any]) -> Any:
         """Resolve ``interface``, building its dependency graph."""
 
+    @abstractmethod
     def resolve_all(self, interface: Any) -> list[Any]:
         """Resolve every registered implementation of ``interface``.
 
@@ -135,17 +147,22 @@ class Container(Protocol):
         so ``resolve_all(Strategy)`` returns every ``Strategy[T]`` specialization.
         """
 
+    @abstractmethod
     async def resolve_async(self, interface: type[Any]) -> Any:
         """Resolve ``interface``, awaiting any async factory hooks."""
 
-    def scope(self, name: str = "scope") -> Iterator["Container"]:
+    @abstractmethod
+    def scope(self, name: str = "scope") -> AbstractContextManager["Container"]:
         """Yield a child scope and dispose its scoped instances on exit."""
 
-    def scope_async(self, name: str = "scope") -> AsyncIterator["Container"]:
+    @abstractmethod
+    def scope_async(self, name: str = "scope") -> AbstractAsyncContextManager["Container"]:
         """Yield a child scope and async-dispose its scoped instances on exit."""
 
+    @abstractmethod
     def dispose(self) -> None:
         """Dispose (synchronously) every instance cached by this scope."""
 
+    @abstractmethod
     async def dispose_async(self) -> None:
         """Dispose (asynchronously) every instance cached by this scope."""

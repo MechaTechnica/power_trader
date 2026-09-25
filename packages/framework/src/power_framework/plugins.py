@@ -15,7 +15,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, ClassVar, cast
 
 if TYPE_CHECKING:
-    from power_framework.protocols.container import Container
+    from power_framework.container import Container
     from power_framework.settings import Settings
 
 

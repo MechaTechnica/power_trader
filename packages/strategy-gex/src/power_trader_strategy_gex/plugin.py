@@ -5,8 +5,8 @@ This plugin registers the strategy and its dependencies into the container it
 is handed by the runtime.
 """
 
+from power_framework.container import Container
 from power_framework.plugins import Plugin, PluginMetadata
-from power_framework.protocols.container import Container
 from power_market.protocols.strategy import Strategy
 from power_trader_strategy_gex.gex_calculator import GEXCalculator
 from power_trader_strategy_gex.strategy import GEXStrategy

@@ -15,6 +15,7 @@ from power_framework.aspects import (AuditInterceptor, Interceptor,
                                      ObserveInterceptor, OperationKind,
                                      RetryInterceptor, audited, intercept,
                                      observed, retry)
+from power_framework.container import Container, Lifetime
 from power_framework.events import (Concurrency, DomainEvent, DurableEventBus,
                                     Event, EventBus, EventHandler, HandlerSpec,
                                     InMemoryEventBus, QueuedEventBus,
@@ -33,7 +34,6 @@ from power_framework.observability import (AuditEvent, AuditSink,
                                            current_correlation_id,
                                            current_trace_id)
 from power_framework.plugins import Plugin, PluginMetadata
-from power_framework.protocols.container import Container, Lifetime
 from power_framework.settings import (Environment, FrameworkSettings, LogLevel,
                                       Settings, TelemetrySettings,
                                       load_settings)

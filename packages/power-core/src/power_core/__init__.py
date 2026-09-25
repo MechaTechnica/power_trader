@@ -13,7 +13,7 @@ __version__ = "0.1.0"
 
 from power_core.bootstrap import create_container
 from power_core.container import Container
-from power_framework.protocols.container import Lifetime
+from power_framework.container import Lifetime
 
 __all__ = [
     "Container",

@@ -53,8 +53,9 @@ from dataclasses import dataclass, field
 from typing import Any, TypeVar, get_args, get_origin, overload
 
 from power_core.validation import DependencyNode, render_report
+from power_framework.container import Container as ContainerABC
+from power_framework.container import Lifetime
 from power_framework.exceptions import FrameworkError
-from power_framework.protocols.container import Lifetime
 
 T = TypeVar("T")
 
@@ -102,7 +103,7 @@ class Registration:
     _lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False, compare=False)
 
 
-class Container:
+class Container(ContainerABC):
     """Registry that resolves dependency graphs by type.
 
     Containers form a parent/child hierarchy. Scoped bindings are cached on the

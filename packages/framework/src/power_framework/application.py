@@ -4,13 +4,14 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from power_framework.exceptions import FrameworkError
-from power_framework.plugins import Plugin, _get_entry_points, _get_group_entry_points
+from power_framework.plugins import (Plugin, _get_entry_points,
+                                     _get_group_entry_points)
 from power_framework.settings import FrameworkSettings, load_settings
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from power_framework.protocols.container import Container
+    from power_framework.container import Container
 
 PLUGIN_GROUP = "power.plugins"
 CORE_GROUP = "power.core"
