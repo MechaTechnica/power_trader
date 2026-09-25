@@ -17,6 +17,7 @@ select = [
     "ERA",    # eradicate (commented out code)
     "PL",     # pylint
     "RUF",    # ruff-specific rules
+    "TID251", # flake8-tidy-imports: banned-api
 ]
 
 ignore = [
@@ -28,7 +29,11 @@ ignore = [
 
 [lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
-"**/tests/**" = ["ARG", "PLR2004"]
+"**/tests/**" = ["ARG", "PLR2004", "TID251"]
+"packages/power-core/**" = ["TID251"]
+
+[lint.flake8-tidy-imports.banned-api]
+"power_core" = { msg = "Application and domain packages must not import power_core directly; depend on power_framework contracts instead." }
 
 [lint.isort]
 known-first-party = [

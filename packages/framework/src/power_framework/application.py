@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from power_framework.exceptions import DependencyError, LifecycleError, PluginError
-from power_framework.plugins import Plugin, _get_entry_points, _get_group_entry_points
+from power_framework.exceptions import (DependencyError, LifecycleError,
+                                        PluginError)
+from power_framework.plugins import (Plugin, _get_entry_points,
+                                     _get_group_entry_points)
 from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.settings import FrameworkSettings, load_settings
 
@@ -305,6 +307,7 @@ class ApplicationBootstrapper:
             self._register_plugin_settings(container, plugin)
             plugin.register(container, runtime)
 
+        # application itself is singleton
         container.register(application_class, application_class)
 
         for interface, instance in overrides or []:

@@ -8,6 +8,8 @@ application needs. Applications never build these themselves.
 from typing import Any
 
 from power_core.container import Container
+from power_core.observability import OpenTelemetryTracer, StructuredLogger
+from power_core.observability import TerminalLogger as TerminalLoggerImpl
 from power_framework.events import Event, EventBus, InMemoryEventBus
 from power_framework.health import HealthCheckRegistry, HealthService
 from power_framework.observability import (
@@ -16,8 +18,6 @@ from power_framework.observability import (
     InMemoryMetrics,
     Logger,
     Metrics,
-    OpenTelemetryTracer,
-    StructuredLogger,
     TerminalLogger,
     Tracer,
 )
@@ -62,18 +62,15 @@ def create_container(
     settings = load_settings(FrameworkSettings)
     container.register_instance(FrameworkSettings, settings)
 
-    # Observability: one shared stack, sourced from framework settings.
-    # Two logging concerns are wired separately: a human-readable terminal
-    # logger for the console, and a structured logger that emits JSON records
-    # for permanent storage (e.g. Cosmos DB).
+    # structured logger is for logging the application state
+    # you can use this to log to permanent storage (i.e cosmos db)
     logger = StructuredLogger(
         service=settings.service_name,
         environment=settings.environment.value,
         version=settings.service_version,
     )
-    terminal_logger = TerminalLogger()
+    terminal_logger = TerminalLoggerImpl()
     container.register_instance(Logger, logger)
-    container.register_instance(StructuredLogger, logger)
     container.register_instance(TerminalLogger, terminal_logger)
     container.register_instance(Metrics, InMemoryMetrics())
     # Tracing adapts to OpenTelemetry when installed, falling back to in-memory.

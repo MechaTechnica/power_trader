@@ -19,8 +19,7 @@ class GEXPlugin(Plugin):
     metadata = PluginMetadata(
         name="gex",
         version="0.1.0",
-        description="Gamma Exposure (GEX) trading strategy",
-        capabilities=frozenset({"strategy"}),
+        description="Gamma Exposure (GEX) trading strategy"
     )
 
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:

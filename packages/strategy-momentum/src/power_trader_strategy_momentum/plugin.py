@@ -18,8 +18,7 @@ class MomentumPlugin(Plugin):
     metadata = PluginMetadata(
         name="momentum",
         version="0.1.0",
-        description="Momentum trading strategy",
-        capabilities=frozenset({"strategy"}),
+        description="Momentum trading strategy"
     )
 
     def register(self, container: Container, runtime: LifecycleRegistry) -> None:
