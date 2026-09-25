@@ -1,17 +1,12 @@
-from __future__ import annotations
-
 import asyncio
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from typing import Any, Self
 
+from power_framework.container import Container
 from power_framework.exceptions import FrameworkError
 from power_framework.plugins import (Plugin, _get_entry_points,
                                      _get_group_entry_points)
 from power_framework.settings import FrameworkSettings, load_settings
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from power_framework.container import Container
 
 PLUGIN_GROUP = "power.plugins"
 CORE_GROUP = "power.core"
@@ -26,17 +21,7 @@ def _plugin_name(plugin_class: type[Plugin]) -> str:
 
 
 class ApplicationBase:
-    """Base class for an application's lifecycle and run entry point.
-
-    Subclasses declare their dependencies as constructor arguments and override
-    ``start``, ``stop``, and ``run``. The framework resolves and injects those
-    dependencies automatically, so an application never needs to know that a DI
-    container exists.
-
-    The application owns its own ``start``/``stop``/``run`` lifecycle: ``start``
-    and ``stop`` handle application-level concerns, and ``run`` is the main loop,
-    awaited on the same event loop as the rest of the runtime.
-    """
+    """Base class for an application's lifecycle and run entry point."""
 
     async def start(self) -> None:
         return None
@@ -122,8 +107,8 @@ class ApplicationBootstrapper:
 
     This class bridges the framework's plugin discovery with the concrete
     runtime (``power-core``) discovered via entry points. Plugins are registered
-    into the container first (registering their lifecycle components), then the
-    application is resolved and attached to the runtime.
+    into the container first, then the application is resolved and attached 
+    to the runtime.
 
     Plugin discovery is separated from plugin *authorization*: discovery finds
     every installed plugin, while an explicit allowlist (``enabled_plugins``)
@@ -335,7 +320,7 @@ class ApplicationBuilder:
         self._validate = validate
         self._enabled_plugins: set[str] | None = None
 
-    def with_plugins(self, *plugin_classes: type[Plugin]) -> ApplicationBuilder:
+    def with_plugins(self, *plugin_classes: type[Plugin]) -> Self:
         """Authorize only the given plugin classes (by name) to load.
 
         This is the explicit allowlist that separates plugin *discovery* from
@@ -345,7 +330,7 @@ class ApplicationBuilder:
         self._enabled_plugins = {_plugin_name(p) for p in plugin_classes}
         return self
 
-    def validate(self) -> ApplicationBuilder:
+    def validate(self) -> Self:
         """Validate the dependency graph, returning ``self`` for chaining.
 
         Raises:

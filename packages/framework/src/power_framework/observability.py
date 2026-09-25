@@ -34,19 +34,15 @@ framework keeps them separate: :class:`Logger` is for operational telemetry,
 while :class:`AuditSink` records immutable, tamper-evident audit events.
 """
 
-from __future__ import annotations
-
 import time
 import uuid
 from collections import defaultdict
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Protocol
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
+from typing import Any, Protocol, Self
 
 # ---------------------------------------------------------------------------
 # Correlation / trace context
@@ -283,7 +279,7 @@ class Span:
         if self.end_time is None:
             self.end_time = time.monotonic()
 
-    def __enter__(self) -> Span:
+    def __enter__(self) -> Self:
         self._trace_token = _trace_id_var.set(self.trace_id)
         self._span_token = _current_span_var.set(self)
         return self

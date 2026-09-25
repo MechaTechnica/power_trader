@@ -8,17 +8,13 @@ same framework translates directly to a bank application::
     input event → domain service → domain event → risk/validation → infrastructure
 """
 
-from __future__ import annotations
-
 import itertools
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
-from power_market.events import OrderFilled, OrderRequested, OrderSubmitted, SignalGenerated
+from power_framework.events import Event, EventBus
+from power_market.events import (OrderFilled, OrderRequested, OrderSubmitted,
+                                 SignalGenerated)
 from power_market.types.signals import SignalIntent
-
-if TYPE_CHECKING:
-    from power_framework.events import Event, EventBus
 
 
 class SignalToOrderHandler:

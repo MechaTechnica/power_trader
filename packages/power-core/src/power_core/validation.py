@@ -23,8 +23,6 @@ This module owns the *tree* data structure and its rendering; the concrete
 :class:`~power_core.container.Container` builds the tree from its registry.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 
 #: Marker shown on a resolvable leaf dependency.
@@ -44,7 +42,7 @@ class DependencyNode:
 
     name: str
     missing: bool = False
-    children: list[DependencyNode] = field(default_factory=list)
+    children: "list[DependencyNode]" = field(default_factory=list)
 
     def has_missing(self) -> bool:
         """Return ``True`` if this node or any descendant is missing."""

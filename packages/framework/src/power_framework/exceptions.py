@@ -15,8 +15,6 @@ failures, and :class:`ApplicationError` for domain/business failures. Distinguis
 specific causes by the message, not by adding more subclasses.
 """
 
-from __future__ import annotations
-
 from typing import ClassVar
 
 

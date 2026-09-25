@@ -11,21 +11,15 @@ production implementations:
 - :func:`redact` — the sensitive-field redaction engine used by both loggers.
 """
 
-from __future__ import annotations
-
 import json
 import logging
 import sys
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Self
 
-from power_framework.observability import (
-    InMemoryTracer,
-    Secret,
-    Span,
-    current_correlation_id,
-    current_trace_id,
-)
+from power_framework.observability import (InMemoryTracer, Secret, Span,
+                                           current_correlation_id,
+                                           current_trace_id)
 
 # OpenTelemetry is an optional dependency: import it lazily at module scope so
 # the runtime runs without it, but adapts to the existing OTel stack when present.
@@ -248,7 +242,7 @@ class _OtelSpanAdapter:
     def end(self) -> None:
         self._span.end()
 
-    def __enter__(self) -> _OtelSpanAdapter:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc: Any) -> None:

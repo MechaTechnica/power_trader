@@ -6,17 +6,14 @@ and capabilities via :class:`PluginMetadata`, and wire their services into the
 container in :meth:`Plugin.register`.
 """
 
-from __future__ import annotations
-
 import importlib.metadata
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import ClassVar, cast
 
-if TYPE_CHECKING:
-    from power_framework.container import Container
-    from power_framework.settings import Settings
+from power_framework.container import Container
+from power_framework.settings import Settings
 
 
 @dataclass(frozen=True)

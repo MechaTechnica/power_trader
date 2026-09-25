@@ -17,18 +17,12 @@ downstream handlers (risk, execution, audit) to act without coupling to the
 producer.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from decimal import Decimal
 
 from power_framework.events import DomainEvent
-
-if TYPE_CHECKING:
-    from decimal import Decimal
-
-    from power_market.types.market import MarketBar, TickerSymbol
-    from power_market.types.signals import Signal, SignalIntent
+from power_market.types.market import MarketBar, TickerSymbol
+from power_market.types.signals import Signal, SignalIntent
 
 
 @dataclass(frozen=True, kw_only=True)

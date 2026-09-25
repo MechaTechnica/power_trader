@@ -11,12 +11,10 @@ report a :class:`HealthStatus`. The framework aggregates them into a single
 :class:`HealthReport` so applications never hand-roll their own health stack.
 """
 
-from __future__ import annotations
-
 import asyncio
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 
 
 class Status(StrEnum):
@@ -37,11 +35,11 @@ class HealthStatus:
     details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def healthy(cls, name: str, message: str | None = None) -> HealthStatus:
+    def healthy(cls, name: str, message: str | None = None) -> Self:
         return cls(name=name, status=Status.HEALTHY, message=message)
 
     @classmethod
-    def unhealthy(cls, name: str, message: str | None = None, **details: Any) -> HealthStatus:
+    def unhealthy(cls, name: str, message: str | None = None, **details: Any) -> Self:
         return cls(name=name, status=Status.UNHEALTHY, message=message, details=details)
 
 

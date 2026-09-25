@@ -23,22 +23,16 @@ one more :class:`Interceptor` and applying it — never editing the business cod
 it decorates.
 """
 
-from __future__ import annotations
-
 import asyncio
 import functools
 import inspect
 import time
+from collections.abc import Awaitable, Callable, Coroutine, Sequence
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar, cast
+from typing import Any, ParamSpec, Protocol, TypeVar, cast
 
 from power_framework.exceptions import InfrastructureError
-from power_framework.observability import AuditEvent, AuditSink
-
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Coroutine, Sequence
-
-    from power_framework.observability import Logger
+from power_framework.observability import AuditEvent, AuditSink, Logger
 
 P = ParamSpec("P")
 R = TypeVar("R")

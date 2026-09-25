@@ -27,23 +27,19 @@ message queue) may provide stronger guarantees (persistence, at-least-once
 delivery, retry after crash) and should document them explicitly.
 """
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 import uuid
 from collections import defaultdict
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any, Protocol
 
 from power_framework.exceptions import InfrastructureError
 from power_framework.observability import (current_correlation_id,
                                            current_trace_id)
-
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
 
 
 @dataclass(frozen=True)

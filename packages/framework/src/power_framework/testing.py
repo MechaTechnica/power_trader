@@ -26,19 +26,15 @@ Usage::
         await app.stop()
 """
 
-from __future__ import annotations
-
 import asyncio
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
-from power_framework.application import (
-    ApplicationBase,
-    ApplicationBootstrapper,
-    ApplicationBuilder,
-    Runtime,
-)
+from power_framework.application import (ApplicationBase,
+                                         ApplicationBootstrapper,
+                                         ApplicationBuilder, Runtime)
 from power_framework.events import Event, EventBus, InMemoryEventBus
-from power_framework.observability import InMemoryMetrics, InMemoryTracer, Metrics, Tracer
+from power_framework.observability import (InMemoryMetrics, InMemoryTracer,
+                                           Metrics, Tracer)
 
 
 class RecordingEventBus(InMemoryEventBus):
@@ -77,12 +73,12 @@ class TestApplicationBuilder(ApplicationBuilder):
         super().__init__(application_class)
         self._overrides: list[tuple[Any, Any]] = []
 
-    def replace(self, interface: Any, instance: Any) -> TestApplicationBuilder:
+    def replace(self, interface: Any, instance: Any) -> Self:
         """Substitute ``instance`` for ``interface`` when the application is built."""
         self._overrides.append((interface, instance))
         return self
 
-    def validate(self) -> TestApplicationBuilder:
+    def validate(self) -> Self:
         """Validate the dependency graph including the registered overrides."""
         ApplicationBootstrapper().validate(self._application_class, overrides=self._overrides)
         return self
@@ -122,12 +118,12 @@ class ApplicationTestHarness:
         }
         self._runtime: Runtime | None = None
 
-    def replace(self, interface: Any, instance: Any) -> ApplicationTestHarness:
+    def replace(self, interface: Any, instance: Any) -> Self:
         """Substitute ``instance`` for an application adapter (database, bus, ...)."""
         self._module_overrides.append((interface, instance))
         return self
 
-    def build(self) -> ApplicationTestHarness:
+    def build(self) -> Self:
         """Assemble the application with all fakes applied."""
         self._runtime = ApplicationBootstrapper().bootstrap(
             self._application_class,
@@ -175,7 +171,7 @@ class ApplicationTestHarness:
     # ------------------------------------------------------------------
     # Context manager
     # ------------------------------------------------------------------
-    def __enter__(self) -> ApplicationTestHarness:
+    def __enter__(self) -> Self:
         self.build()
         return self
 
