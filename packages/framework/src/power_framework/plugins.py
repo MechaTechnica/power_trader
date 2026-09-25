@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import importlib.metadata
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import TYPE_CHECKING, ClassVar, cast
 
@@ -84,5 +84,4 @@ def _get_group_entry_points(
 __all__ = [
     "Plugin",
     "PluginMetadata",
-    "topological_sort",
 ]

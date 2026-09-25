@@ -16,8 +16,12 @@ from pathlib import Path
 from typing import ClassVar, TypeVar
 
 from pydantic import Field
-from pydantic_settings import (BaseSettings, JsonConfigSettingsSource,
-                               PydanticBaseSettingsSource, SettingsConfigDict)
+from pydantic_settings import (
+    BaseSettings,
+    JsonConfigSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 
 class Environment(StrEnum):
@@ -170,7 +174,7 @@ def load_settings(settings_type: type[SettingsT]) -> SettingsT:
     declare their settings type (via ``Plugin.settings_class``) and the
     framework loads it, rather than each plugin instantiating its own settings
     and re-inventing precedence rules.
-    
+
     Follow up for this method could be:
      _apply_secret_provider(settings)    # resolve refs from Key Vault
      _validate_for_environment(settings) # fail fast in prod

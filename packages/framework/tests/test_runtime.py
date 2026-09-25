@@ -1,6 +1,7 @@
 """Tests for the runtime-owned lifecycle manager."""
 
 import pytest
+
 from power_framework.application import ApplicationBase, Runtime
 from power_framework.exceptions import LifecycleError
 

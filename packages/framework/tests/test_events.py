@@ -4,9 +4,16 @@ import asyncio
 from dataclasses import dataclass
 
 import pytest
-from power_framework.events import (Concurrency, DomainEvent, Event,
-                                    InMemoryEventBus, QueuedEventBus,
-                                    RetryPolicy, handler)
+
+from power_framework.events import (
+    Concurrency,
+    DomainEvent,
+    Event,
+    InMemoryEventBus,
+    QueuedEventBus,
+    RetryPolicy,
+    handler,
+)
 from power_framework.exceptions import InfrastructureError
 from power_framework.observability import correlation_scope
 

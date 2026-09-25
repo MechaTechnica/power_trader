@@ -163,10 +163,8 @@ class Runtime(LifecycleRegistry):
     def run(self) -> None:
         """Run the application to completion, owning the event loop.
 
-        This is the synchronous public entry point for application developers:
-        the framework owns the async execution model (a single event loop driving
-        ``start`` → ``run`` → ``stop``), so callers never need to know about
-        ``asyncio``.
+        This is the synchronous public entry point for application developers.
+        Use run_async to run your application aynchronously
         """
         asyncio.run(self.run_async())
 

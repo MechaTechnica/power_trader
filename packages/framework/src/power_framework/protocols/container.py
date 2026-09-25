@@ -8,12 +8,7 @@ T_co = TypeVar("T_co", covariant=True)
 
 
 class Lifetime(StrEnum):
-    """How long a registered binding lives before it is recreated.
-
-    This replaces ad-hoc ``"singleton"`` / ``"transient"`` strings with a
-    single, self-documenting vocabulary shared by the framework contract and
-    the concrete runtime.
-    """
+    """How long a registered binding lives before it is recreated."""
 
     SINGLETON = "singleton"
     """One instance shared by the whole application (the root container)."""
@@ -44,7 +39,6 @@ class Container(Protocol):
     @property
     def name(self) -> str:
         """The human-readable name of this container/scope."""
-        ...
 
     def create_child(self, name: str = "child") -> "Container":
         """Create a child scope that falls back to this container for lookups.
@@ -53,7 +47,6 @@ class Container(Protocol):
         each child gets its own instances (e.g. a distinct correlation ID or
         transaction context per message).
         """
-        ...
 
     @overload
     def register(
@@ -65,7 +58,6 @@ class Container(Protocol):
         **kwargs: Any,
     ) -> None:
         """Register a concrete class (constructor-injected)."""
-        ...
 
     @overload
     def register(
@@ -77,7 +69,6 @@ class Container(Protocol):
         **kwargs: Any,
     ) -> None:
         """Register a factory callable, e.g. ``lambda: make_thing()``."""
-        ...
 
     @overload
     def register(
@@ -87,7 +78,6 @@ class Container(Protocol):
         lifetime: Lifetime = Lifetime.SINGLETON,
     ) -> None:
         """Register a concrete type to itself."""
-        ...
 
     def register(
         self,
@@ -98,12 +88,10 @@ class Container(Protocol):
         **kwargs: Any,
     ) -> None:
         """Register an implementation (class or factory) against an interface."""
-        ...
 
     @overload
     def register_instance(self, interface: Any, instance: Callable[[], Any]) -> None:
         """Register a lazy zero-arg factory, e.g. ``lambda: make_thing()``."""
-        ...
 
     @overload
     def register_instance(self, interface: Any, instance: Any) -> None:
@@ -112,7 +100,6 @@ class Container(Protocol):
 
     def register_instance(self, interface: Any, instance: Any) -> None:
         """Register an already-constructed instance or a lazy factory."""
-        ...
 
     def override(self, interface: Any, instance: Any) -> None:
         """Replace any registration for ``interface`` with an instance.
@@ -121,7 +108,6 @@ class Container(Protocol):
         ``TestApplicationBuilder.replace(Interface, Fake())``: it substitutes an
         installed adapter for a fake without editing production wiring.
         """
-        ...
 
     def validate(self, *roots: Any) -> None:
         """Validate that every root's dependency graph is fully resolvable.
@@ -129,11 +115,9 @@ class Container(Protocol):
         Raises ``DependencyValidationError`` when a dependency has no
         registration, with a human-readable tree in the message.
         """
-        ...
 
     def validate_report(self, *roots: Any) -> str:
         """Return the validation report for ``*roots`` as a formatted string."""
-        ...
 
     @overload
     def resolve(self, interface: type[T_co]) -> T_co: ...
@@ -143,7 +127,6 @@ class Container(Protocol):
 
     def resolve(self, interface: type[Any]) -> Any:
         """Resolve ``interface``, building its dependency graph."""
-        ...
 
     def resolve_all(self, interface: Any) -> list[Any]:
         """Resolve every registered implementation of ``interface``.
@@ -151,24 +134,18 @@ class Container(Protocol):
         Matches registrations whose unparameterized origin equals ``interface``,
         so ``resolve_all(Strategy)`` returns every ``Strategy[T]`` specialization.
         """
-        ...
 
     async def resolve_async(self, interface: type[Any]) -> Any:
         """Resolve ``interface``, awaiting any async factory hooks."""
-        ...
 
     def scope(self, name: str = "scope") -> Iterator["Container"]:
         """Yield a child scope and dispose its scoped instances on exit."""
-        ...
 
     def scope_async(self, name: str = "scope") -> AsyncIterator["Container"]:
         """Yield a child scope and async-dispose its scoped instances on exit."""
-        ...
 
     def dispose(self) -> None:
         """Dispose (synchronously) every instance cached by this scope."""
-        ...
 
     async def dispose_async(self) -> None:
         """Dispose (asynchronously) every instance cached by this scope."""
-        ...
