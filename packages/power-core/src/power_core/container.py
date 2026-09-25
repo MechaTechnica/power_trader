@@ -52,9 +52,8 @@ from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from typing import Any, TypeVar, get_args, get_origin, overload
 
-from power_core.exceptions import DIError
 from power_core.validation import DependencyNode, render_report
-from power_framework.exceptions import DependencyValidationError
+from power_framework.exceptions import FrameworkError
 from power_framework.protocols.container import Lifetime
 
 T = TypeVar("T")
@@ -197,13 +196,13 @@ class Container:
             **kwargs: Extra keyword arguments passed to the constructor/factory.
 
         Raises:
-            DIError: If ``interface`` is already registered or ``lifetime`` is invalid.
+            FrameworkError: If ``interface`` is already registered or ``lifetime`` is invalid.
         """
         if interface in self._registry:
-            raise DIError(f"Type '{_type_name(interface)}' is already registered")
+            raise FrameworkError(f"Type '{_type_name(interface)}' is already registered")
 
         if not isinstance(lifetime, Lifetime):
-            raise DIError(f"Invalid lifetime {lifetime!r}; expected a Lifetime member")
+            raise FrameworkError(f"Invalid lifetime {lifetime!r}; expected a Lifetime member")
 
         impl = implementation if implementation is not None else interface
         self._registry[interface] = Registration(
@@ -232,10 +231,10 @@ class Container:
         singleton (useful for mocks/config).
 
         Raises:
-            DIError: If ``interface`` is already registered.
+            FrameworkError: If ``interface`` is already registered.
         """
         if interface in self._registry:
-            raise DIError(f"Type '{_type_name(interface)}' is already registered")
+            raise FrameworkError(f"Type '{_type_name(interface)}' is already registered")
 
         if callable(instance) and not isinstance(instance, type):
             # Lazy factory: construct on first resolve, then cache.
@@ -286,7 +285,7 @@ class Container:
         ``interface`` may be a Protocol or a concrete class.
 
         Raises:
-            DIError: If a dependency type cannot be satisfied.
+            FrameworkError: If a dependency type cannot be satisfied.
         """
         reg = self._get_registration(interface)
         if reg.lifetime is Lifetime.SINGLETON and reg.instance is not _UNSET:
@@ -463,7 +462,7 @@ class Container:
         if self._parent is not None:
             return self._parent._get_registration(interface)
         # Allow unregistered concrete types to self-register if resolvable.
-        raise DIError(
+        raise FrameworkError(
             f"No registration for type '{_type_name(interface)}'. "
             f"Call container.register({_type_name(interface)}, <implementation>) first."
         )
@@ -487,11 +486,11 @@ class Container:
                 interface is validated.
 
         Raises:
-            DependencyValidationError: If any dependency (transitively) has no
-                registration, with a human-readable tree in the message.
+            FrameworkError: If any dependency (transitively) has no registration,
+                with a human-readable tree in the message.
         """
         if any(node.has_missing() for node in self._dependency_trees(roots)):
-            raise DependencyValidationError(self.validate_report(*roots))
+            raise FrameworkError(self.validate_report(*roots))
 
     def validate_report(self, *roots: Any) -> str:
         """Return the validation report for ``*roots`` as a formatted string."""
@@ -551,7 +550,7 @@ class Container:
         try:
             params = self._inspect_params(impl)
         except (TypeError, ValueError):
-            raise DIError(
+            raise FrameworkError(
                 f"Cannot inspect constructor for '{getattr(impl, '__name__', str(impl))}'"
             ) from None
 
@@ -567,13 +566,13 @@ class Container:
                     kwargs[name] = self._resolve_collection(annotation)
                 continue
             if annotation in (Any, inspect.Parameter.empty) or annotation is None:
-                raise DIError(
+                raise FrameworkError(
                     f"Parameter '{name}' of '{getattr(impl, '__name__', str(impl))}' "
                     "is untyped and cannot be auto-resolved"
                 )
             try:
                 kwargs[name] = self.resolve(annotation)
-            except DIError:
+            except FrameworkError:
                 # Not registered -> inject interface itself if it equals ctor param type.
                 if annotation is interface:
                     kwargs[name] = self._construct(interface, impl, extra_kwargs)
@@ -581,7 +580,7 @@ class Container:
                     missing.append(f"{name}: {getattr(annotation, '__name__', str(annotation))}")
 
         if missing:
-            raise DIError(
+            raise FrameworkError(
                 f"Unresolvable dependencies for '{getattr(impl, '__name__', str(impl))}': "
                 + ", ".join(missing)
             )
@@ -589,7 +588,7 @@ class Container:
         try:
             return self._resolve_ctor(impl)(**kwargs)
         except Exception as e:
-            raise DIError(
+            raise FrameworkError(
                 f"Failed to construct '{getattr(impl, '__name__', str(impl))}': {e}"
             ) from e
 
@@ -603,7 +602,7 @@ class Container:
         try:
             params = self._inspect_params(impl)
         except (TypeError, ValueError):
-            raise DIError(
+            raise FrameworkError(
                 f"Cannot inspect constructor for '{getattr(impl, '__name__', str(impl))}'"
             ) from None
 
@@ -619,20 +618,20 @@ class Container:
                     kwargs[name] = self._resolve_collection(annotation)
                 continue
             if annotation in (Any, inspect.Parameter.empty) or annotation is None:
-                raise DIError(
+                raise FrameworkError(
                     f"Parameter '{name}' of '{getattr(impl, '__name__', str(impl))}' "
                     "is untyped and cannot be auto-resolved"
                 )
             try:
                 kwargs[name] = await self.resolve_async(annotation)
-            except DIError:
+            except FrameworkError:
                 if annotation is interface:
                     kwargs[name] = await self._construct_async(interface, impl, extra_kwargs)
                 else:
                     missing.append(f"{name}: {getattr(annotation, '__name__', str(annotation))}")
 
         if missing:
-            raise DIError(
+            raise FrameworkError(
                 f"Unresolvable dependencies for '{getattr(impl, '__name__', str(impl))}': "
                 + ", ".join(missing)
             )

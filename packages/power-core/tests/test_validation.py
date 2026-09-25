@@ -3,7 +3,7 @@
 import pytest
 
 from power_core.container import Container
-from power_core.exceptions import DependencyValidationError
+from power_framework.exceptions import FrameworkError
 
 
 class DatabaseConfiguration:
@@ -46,7 +46,7 @@ def test_validate_raises_with_tree_on_missing_dependency():
     container.register(OrderRepository, OrderRepository)
     container.register(OrderService, OrderService)
 
-    with pytest.raises(DependencyValidationError) as exc_info:
+    with pytest.raises(FrameworkError) as exc_info:
         container.validate(OrderService)
 
     report = str(exc_info.value)
@@ -84,7 +84,7 @@ def test_validate_marks_untyped_parameters_missing():
     container = Container()
     container.register(UntypedDependency, UntypedDependency)
 
-    with pytest.raises(DependencyValidationError) as exc_info:
+    with pytest.raises(FrameworkError) as exc_info:
         container.validate(UntypedDependency)
 
     assert "untyped" in str(exc_info.value)

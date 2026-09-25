@@ -9,79 +9,36 @@ implementations live in ``power-core``.
 
 __version__ = "0.1.0"
 
-from power_framework.application import ApplicationBase, ApplicationBuilder, Runtime
-from power_framework.aspects import (
-                                         AuditInterceptor,
-                                         Interceptor,
-                                         ObserveInterceptor,
-                                         OperationKind,
-                                         RetryInterceptor,
-                                         audited,
-                                         intercept,
-                                         observed,
-                                         retry,
-)
-from power_framework.events import (
-                                         Concurrency,
-                                         DomainEvent,
-                                         DurableEventBus,
-                                         Event,
-                                         EventBus,
-                                         EventHandler,
-                                         HandlerSpec,
-                                         InMemoryEventBus,
-                                         QueuedEventBus,
-                                         RetryPolicy,
-                                         handler,
-)
-from power_framework.exceptions import (
-                                         ApplicationError,
-                                         ConfigurationError,
-                                         DependencyError,
-                                         DependencyValidationError,
-                                         DomainError,
-                                         FrameworkError,
-                                         InfrastructureError,
-                                         LifecycleError,
-                                         PluginError,
-                                         is_retryable,
-)
-from power_framework.health import (
-                                         HealthCheck,
-                                         HealthCheckRegistry,
-                                         HealthReport,
-                                         HealthService,
-                                         HealthStatus,
-                                         Status,
-)
-from power_framework.observability import (
-                                         AuditEvent,
-                                         AuditSink,
-                                         InMemoryAuditSink,
-                                         InMemoryMetrics,
-                                         InMemoryTracer,
-                                         Logger,
-                                         Metrics,
-                                         Redacted,
-                                         Secret,
-                                         Span,
-                                         TerminalLogger,
-                                         Tracer,
-                                         correlation_scope,
-                                         current_correlation_id,
-                                         current_trace_id,
-)
+from power_framework.application import (ApplicationBase, ApplicationBuilder,
+                                         Runtime)
+from power_framework.aspects import (AuditInterceptor, Interceptor,
+                                     ObserveInterceptor, OperationKind,
+                                     RetryInterceptor, audited, intercept,
+                                     observed, retry)
+from power_framework.events import (Concurrency, DomainEvent, DurableEventBus,
+                                    Event, EventBus, EventHandler, HandlerSpec,
+                                    InMemoryEventBus, QueuedEventBus,
+                                    RetryPolicy, event_handler)
+from power_framework.exceptions import (ApplicationError, FrameworkError,
+                                        InfrastructureError, is_retryable)
+from power_framework.health import (HealthCheck, HealthCheckRegistry,
+                                    HealthReport, HealthService, HealthStatus,
+                                    Status)
+from power_framework.observability import (AuditEvent, AuditSink,
+                                           InMemoryAuditSink, InMemoryMetrics,
+                                           InMemoryTracer, Logger, Metrics,
+                                           Redacted, Secret, Span,
+                                           TerminalLogger, Tracer,
+                                           correlation_scope,
+                                           current_correlation_id,
+                                           current_trace_id)
 from power_framework.plugins import Plugin, PluginMetadata
 from power_framework.protocols.container import Container, Lifetime
-from power_framework.settings import (
-                                         Environment,
-                                         FrameworkSettings,
-                                         LogLevel,
-                                         Settings,
-                                         TelemetrySettings,
-                                         load_settings,
-)
-from power_framework.testing import ApplicationTestHarness, TestApplicationBuilder
+from power_framework.settings import (Environment, FrameworkSettings, LogLevel,
+                                      Settings, TelemetrySettings,
+                                      load_settings)
+from power_framework.testing import (ApplicationTestHarness,
+                                     TestApplicationBuilder)
 
 __all__ = [
     "ApplicationBase",
@@ -92,11 +49,7 @@ __all__ = [
     "AuditInterceptor",
     "AuditSink",
     "Concurrency",
-    "ConfigurationError",
     "Container",
-    "DependencyError",
-    "DependencyValidationError",
-    "DomainError",
     "DomainEvent",
     "DurableEventBus",
     "Environment",
@@ -117,7 +70,6 @@ __all__ = [
     "InMemoryTracer",
     "InfrastructureError",
     "Interceptor",
-    "LifecycleError",
     "Lifetime",
     "LogLevel",
     "Logger",
@@ -125,7 +77,6 @@ __all__ = [
     "ObserveInterceptor",
     "OperationKind",
     "Plugin",
-    "PluginError",
     "PluginMetadata",
     "QueuedEventBus",
     "Redacted",
@@ -144,7 +95,7 @@ __all__ = [
     "correlation_scope",
     "current_correlation_id",
     "current_trace_id",
-    "handler",
+    "event_handler",
     "intercept",
     "is_retryable",
     "load_settings",

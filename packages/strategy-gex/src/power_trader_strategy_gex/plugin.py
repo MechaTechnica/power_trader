@@ -16,9 +16,7 @@ class GEXPlugin(Plugin):
     """Plugin wiring for the GEX strategy."""
 
     metadata = PluginMetadata(
-        name="gex",
-        version="0.1.0",
-        description="Gamma Exposure (GEX) trading strategy"
+        name="gex", version="0.1.0", description="Gamma Exposure (GEX) trading strategy"
     )
 
     def register(self, container: Container) -> None:

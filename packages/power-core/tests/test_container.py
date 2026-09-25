@@ -6,7 +6,7 @@ from typing import Protocol
 import pytest
 
 from power_core.container import Container
-from power_core.exceptions import DIError
+from power_framework.exceptions import FrameworkError
 from power_framework.protocols.container import Lifetime
 
 
@@ -82,7 +82,7 @@ def test_register_instance_returns_same_object():
 def test_duplicate_registration_raises():
     container = Container()
     container.register(Service, DefaultService)
-    with pytest.raises(DIError):
+    with pytest.raises(FrameworkError):
         container.register(Service, Consumer)
 
 
@@ -94,19 +94,19 @@ def test_missing_dependency_raises_di_error():
             self.missing = missing
 
     container.register(NeedsMissing, NeedsMissing)
-    with pytest.raises(DIError):
+    with pytest.raises(FrameworkError):
         container.resolve(NeedsMissing)
 
 
 def test_unregistered_type_raises_di_error():
     container = Container()
-    with pytest.raises(DIError):
+    with pytest.raises(FrameworkError):
         container.resolve(Service)
 
 
 def test_invalid_lifetime_raises():
     container = Container()
-    with pytest.raises(DIError):
+    with pytest.raises(FrameworkError):
         container.register(Service, DefaultService, lifetime="bogus")
 
 
@@ -235,9 +235,7 @@ async def test_async_singleton_is_constructed_exactly_once_under_gather():
     container = Container()
     container.register(Service, make_slow)
 
-    results = await asyncio.gather(
-        *(container.resolve_async(Service) for _ in range(100))
-    )
+    results = await asyncio.gather(*(container.resolve_async(Service) for _ in range(100)))
 
     assert constructed["n"] == 1
     assert all(result is results[0] for result in results)

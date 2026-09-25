@@ -15,9 +15,7 @@ class MomentumPlugin(Plugin):
     """Plugin wiring for the momentum strategy."""
 
     metadata = PluginMetadata(
-        name="momentum",
-        version="0.1.0",
-        description="Momentum trading strategy"
+        name="momentum", version="0.1.0", description="Momentum trading strategy"
     )
 
     def register(self, container: Container) -> None:

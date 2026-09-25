@@ -1,11 +1,18 @@
 """Framework error model.
 
-Two families:
+Three types cover the framework's needs:
 
-- :class:`FrameworkError` — failures of the framework itself. Subclasses carry a
-  :attr:`retryable` flag so the runtime and interceptors react consistently.
-- :class:`ApplicationError` — business failures raised by domain code, handled at
-  the application level rather than by the runtime.
+- :class:`FrameworkError` — a failure of the framework machinery (configuration,
+  dependency resolution, plugin loading, lifecycle). Not retryable.
+- :class:`InfrastructureError` — a transient failure of a framework-managed
+  service; carries ``retryable = True`` so the retry interceptor reacts.
+- :class:`ApplicationError` — a business failure raised by domain code, handled
+  at the application level rather than by the runtime.
+
+Rule of thumb: raise :class:`FrameworkError` for anything the framework itself
+gets wrong, :class:`InfrastructureError` for transient external-service
+failures, and :class:`ApplicationError` for domain/business failures. Distinguish
+specific causes by the message, not by adding more subclasses.
 """
 
 from __future__ import annotations
@@ -20,30 +27,6 @@ class FrameworkError(Exception):
     retryable: ClassVar[bool] = False
 
 
-class ConfigurationError(FrameworkError):
-    """Configuration is invalid or missing (fail fast)."""
-
-
-class DependencyError(FrameworkError):
-    """A required dependency could not be resolved (fail startup)."""
-
-
-class DependencyValidationError(DependencyError):
-    """The dependency graph is incomplete.
-
-    Raised by ``Container.validate`` before construction, with a tree annotating
-    each dependency as ``✓`` (resolvable) or ``✗ missing`` (unregistered).
-    """
-
-
-class LifecycleError(FrameworkError):
-    """A lifecycle component failed to start or stop."""
-
-
-class PluginError(FrameworkError):
-    """A plugin failed to load or register (fail startup)."""
-
-
 class InfrastructureError(FrameworkError):
     """A framework-managed service failed transiently (retry)."""
 
@@ -54,10 +37,6 @@ class ApplicationError(Exception):
     """Base for errors raised by application/domain code (not framework errors)."""
 
 
-class DomainError(ApplicationError):
-    """A domain rule or validation invariant was violated."""
-
-
 def is_retryable(error: BaseException) -> bool:
     """Return ``True`` if ``error`` is classified as transient and retryable."""
     return bool(getattr(type(error), "retryable", False))
@@ -65,13 +44,7 @@ def is_retryable(error: BaseException) -> bool:
 
 __all__ = [
     "ApplicationError",
-    "ConfigurationError",
-    "DependencyError",
-    "DependencyValidationError",
-    "DomainError",
     "FrameworkError",
     "InfrastructureError",
-    "LifecycleError",
-    "PluginError",
     "is_retryable",
 ]

@@ -39,7 +39,8 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Protocol
 
 from power_framework.exceptions import InfrastructureError
-from power_framework.observability import current_correlation_id, current_trace_id
+from power_framework.observability import (current_correlation_id,
+                                           current_trace_id)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -116,7 +117,7 @@ class EventHandler(Protocol):
 class HandlerSpec:
     """A declared handler binding: an event type plus its dispatch policy.
 
-    Produced by the :func:`handler` decorator and registered via
+    Produced by the :func:`event_handler` decorator and registered via
     :meth:`EventBus.register`. It carries the handler's concurrency and retry
     policy so the bus can apply them uniformly.
     """
@@ -243,7 +244,8 @@ class InMemoryEventBus:
                     return
                 if spec.retry.delay_seconds > 0:
                     await asyncio.sleep(spec.retry.delay_seconds)
-            except Exception as exc:
+            # Catch all exceptions, ignore pylint error, catch all is correct
+            except Exception as exc:  # pylint: disable=broad-except
                 await self._route_error(event, exc)
                 return
 
@@ -335,7 +337,7 @@ class _FunctionHandler:
         await self._fn(event)
 
 
-def handler(
+def event_handler(
     event_type: type[Any],
     *,
     concurrency: Concurrency = Concurrency.SEQUENTIAL,
@@ -345,7 +347,7 @@ def handler(
 
     Usage::
 
-        @handler(OrderSubmitted, concurrency=Concurrency.CONCURRENT, retry=RetryPolicy())
+        @event_handler(OrderSubmitted, concurrency=Concurrency.CONCURRENT, retry=RetryPolicy())
         async def on_order_submitted(event: OrderSubmitted) -> None:
             ...
 
@@ -378,5 +380,5 @@ __all__ = [
     "InMemoryEventBus",
     "QueuedEventBus",
     "RetryPolicy",
-    "handler",
+    "event_handler",
 ]

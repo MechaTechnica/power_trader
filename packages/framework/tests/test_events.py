@@ -4,16 +4,9 @@ import asyncio
 from dataclasses import dataclass
 
 import pytest
-
-from power_framework.events import (
-    Concurrency,
-    DomainEvent,
-    Event,
-    InMemoryEventBus,
-    QueuedEventBus,
-    RetryPolicy,
-    handler,
-)
+from power_framework.events import (Concurrency, DomainEvent, Event,
+                                    InMemoryEventBus, QueuedEventBus,
+                                    RetryPolicy, event_handler)
 from power_framework.exceptions import InfrastructureError
 from power_framework.observability import correlation_scope
 
@@ -147,7 +140,7 @@ async def test_handler_decorator_registers_with_retry_policy():
     bus = InMemoryEventBus()
     attempts = {"n": 0}
 
-    @handler(Event, retry=RetryPolicy(max_attempts=3))
+    @event_handler(Event, retry=RetryPolicy(max_attempts=3))
     async def on_event(event: Event) -> None:
         attempts["n"] += 1
         if attempts["n"] < 3:

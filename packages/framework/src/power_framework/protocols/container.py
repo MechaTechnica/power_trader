@@ -112,8 +112,8 @@ class Container(Protocol):
     def validate(self, *roots: Any) -> None:
         """Validate that every root's dependency graph is fully resolvable.
 
-        Raises ``DependencyValidationError`` when a dependency has no
-        registration, with a human-readable tree in the message.
+        Raises ``FrameworkError`` when a dependency has no registration, with a
+        human-readable tree in the message.
         """
 
     def validate_report(self, *roots: Any) -> str:

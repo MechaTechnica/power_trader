@@ -3,10 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-from power_framework.exceptions import (DependencyError, LifecycleError,
-                                        PluginError)
-from power_framework.plugins import (Plugin, _get_entry_points,
-                                     _get_group_entry_points)
+from power_framework.exceptions import FrameworkError
+from power_framework.plugins import Plugin, _get_entry_points, _get_group_entry_points
 from power_framework.settings import FrameworkSettings, load_settings
 
 if TYPE_CHECKING:
@@ -64,7 +62,7 @@ class Runtime:
     def application(self) -> ApplicationBase:
         application = self._application
         if application is None:
-            raise LifecycleError("No application has been attached to the runtime.")
+            raise FrameworkError("No application has been attached to the runtime.")
         return application
 
     async def start(self) -> None:
@@ -72,14 +70,14 @@ class Runtime:
         try:
             await self.application.start()
         except Exception as exc:
-            raise LifecycleError(f"Failed to start application: {exc}") from exc
+            raise FrameworkError(f"Failed to start application: {exc}") from exc
 
     async def stop(self) -> None:
         """Stop the application, optionally bounded by the shutdown timeout."""
         try:
             await self._stop_component(self.application, "application")
         except Exception as exc:
-            raise LifecycleError(f"Failed to stop application: {exc}") from exc
+            raise FrameworkError(f"Failed to stop application: {exc}") from exc
 
     async def _stop_component(self, component: Any, name: str) -> None:
         """Stop ``component``, optionally bounded by the shutdown timeout."""
@@ -92,9 +90,8 @@ class Runtime:
                 timeout=self._shutdown_timeout_seconds,
             )
         except TimeoutError as exc:
-            raise LifecycleError(
-                f"Timed out stopping '{name}' after "
-                f"{self._shutdown_timeout_seconds}s"
+            raise FrameworkError(
+                f"Timed out stopping '{name}' after {self._shutdown_timeout_seconds}s"
             ) from exc
 
     def run(self) -> None:
@@ -143,12 +140,12 @@ class ApplicationBootstrapper:
         core_matches = _get_group_entry_points(entry_points, CORE_GROUP)
 
         if not core_matches:
-            raise DependencyError(
+            raise FrameworkError(
                 "No framework runtime found. Install a runtime such as "
                 f"'power-core' and ensure it registers a '{CORE_GROUP}' entry point."
             )
         if len(core_matches) > 1:
-            raise DependencyError(
+            raise FrameworkError(
                 f"Multiple runtime entry points found in group '{CORE_GROUP}'. "
                 "Only one core runtime may be installed."
             )
@@ -174,7 +171,7 @@ class ApplicationBootstrapper:
         for entry_point in sorted(plugin_entries, key=lambda candidate: candidate.name):
             plugin_class = entry_point.load()
             if not isinstance(plugin_class, type) or not issubclass(plugin_class, Plugin):
-                raise PluginError(
+                raise FrameworkError(
                     f"Plugin entry point '{entry_point.name}' must expose a Plugin subclass"
                 )
             if allowlist is not None:
@@ -260,8 +257,8 @@ class ApplicationBootstrapper:
         """Validate the application's dependency graph before construction.
 
         Raises:
-            DependencyValidationError: If the application or any lifecycle
-                component has an unsatisfiable dependency, with a tree report.
+            FrameworkError: If the application has an unsatisfiable dependency,
+                with a tree report.
         """
         container, _ = self.assemble(
             application_class,
@@ -351,8 +348,8 @@ class ApplicationBuilder:
         """Validate the dependency graph, returning ``self`` for chaining.
 
         Raises:
-            DependencyValidationError: If the graph is incomplete, with a tree
-                showing each dependency as ``✓`` or ``✗ missing``.
+            FrameworkError: If the graph is incomplete, with a tree showing each
+                dependency as ``✓`` or ``✗ missing``.
         """
         ApplicationBootstrapper().validate(
             self._application_class,

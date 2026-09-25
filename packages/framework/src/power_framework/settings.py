@@ -178,7 +178,7 @@ def load_settings(settings_type: type[SettingsT]) -> SettingsT:
     Follow up for this method could be:
      _apply_secret_provider(settings)    # resolve refs from Key Vault
      _validate_for_environment(settings) # fail fast in prod
-     """
+    """
     return settings_type()
 
 
