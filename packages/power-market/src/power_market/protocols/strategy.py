@@ -12,10 +12,10 @@ T_co = TypeVar("T_co", covariant=True)
 
 
 class Strategy(Protocol[T_co]):
-    """A domain strategy: an identity plus a single ``analyze`` operation.
+    """A domain strategy: an identity, an ``analyze`` operation, and lifecycle.
 
-    Infrastructure concerns (lifecycle, wiring) live elsewhere; this interface
-    stays small. Wiring goes in the strategy package's ``plugin.py``.
+    Strategies own their ``start``/``stop`` so a registry can drive them
+    uniformly. Wiring goes in the strategy package's ``plugin.py``.
     """
 
     @property
@@ -34,6 +34,14 @@ class Strategy(Protocol[T_co]):
         Called on the hot path, so implementations should cache indicators and
         avoid blocking I/O.
         """
+        ...
+
+    async def start(self) -> None:
+        """Prepare the strategy for analysis (load models, warm caches)."""
+        ...
+
+    async def stop(self) -> None:
+        """Release the strategy's resources."""
         ...
 
 

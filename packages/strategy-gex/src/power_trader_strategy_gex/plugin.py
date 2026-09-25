@@ -7,7 +7,6 @@ is handed by the runtime.
 
 from power_framework.plugins import Plugin, PluginMetadata
 from power_framework.protocols.container import Container
-from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_market.protocols.strategy import Strategy
 from power_trader_strategy_gex.gex_calculator import GEXCalculator
 from power_trader_strategy_gex.strategy import GEXStrategy
@@ -22,7 +21,6 @@ class GEXPlugin(Plugin):
         description="Gamma Exposure (GEX) trading strategy"
     )
 
-    def register(self, container: Container, runtime: LifecycleRegistry) -> None:
-        del runtime
+    def register(self, container: Container) -> None:
         container.register(GEXCalculator)
         container.register(Strategy[GEXStrategy], GEXStrategy)

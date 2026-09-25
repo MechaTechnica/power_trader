@@ -2,16 +2,14 @@
 
 from typing import Any
 
-from power_framework.protocols.lifecycle import Lifecycle
 from power_market.protocols.strategy import Strategy
 
 
-class StrategyRegistry(Lifecycle):
+class StrategyRegistry:
     """Holds every registered strategy and drives their lifecycle.
 
-    The container injects every ``Strategy[T]`` specialization as a list. As a
-    single :class:`Lifecycle` component, the runtime starts/stops this registry
-    in order. Only strategies that opt into :class:`Lifecycle` are driven.
+    The container injects every ``Strategy[T]`` specialization as a list. The
+    registry drives each strategy's ``start``/``stop`` on startup and shutdown.
     """
 
     def __init__(self, strategies: list[Strategy[Any]]) -> None:
@@ -23,13 +21,11 @@ class StrategyRegistry(Lifecycle):
         return self._strategies
 
     async def start(self) -> None:
-        """Start every strategy that implements the lifecycle protocol."""
+        """Start every strategy."""
         for strategy in self._strategies:
-            if isinstance(strategy, Lifecycle):
-                await strategy.start()
+            await strategy.start()
 
     async def stop(self) -> None:
-        """Stop every strategy that implements the lifecycle protocol."""
+        """Stop every strategy."""
         for strategy in self._strategies:
-            if isinstance(strategy, Lifecycle):
-                await strategy.stop()
+            await strategy.stop()

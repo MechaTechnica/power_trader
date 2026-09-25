@@ -3,17 +3,15 @@
 from datetime import datetime
 from typing import Any
 
-from power_framework.protocols.lifecycle import Lifecycle
 from power_market.types.market import MarketContext
 from power_market.types.signals import Signal, SignalIntent, SignalSource
 
 
-class MomentumStrategy(Lifecycle):
+class MomentumStrategy:
     """
     Momentum-based trading strategy.
 
-    Implements the Strategy protocol as a plugin and the framework Lifecycle
-    protocol (a separate, infrastructure-owned concern) for setup/teardown.
+    Implements the Strategy protocol, including its start/stop lifecycle hooks.
 
     Strategy logic:
     - Calculates simple price momentum

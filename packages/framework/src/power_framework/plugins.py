@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, ClassVar, cast
 
 if TYPE_CHECKING:
     from power_framework.protocols.container import Container
-    from power_framework.protocols.lifecycle import LifecycleRegistry
     from power_framework.settings import Settings
 
 
@@ -49,12 +48,8 @@ class Plugin(ABC):
     settings_class: ClassVar[type[Settings] | None] = None
 
     @abstractmethod
-    def register(self, container: Container, runtime: LifecycleRegistry) -> None:
-        """Register this plugin's services into ``container``.
-
-        Lifecycle components should additionally be registered into ``runtime``
-        in start order, so the runtime owns their ordering.
-        """
+    def register(self, container: Container) -> None:
+        """Register this plugin's services into ``container``."""
 
 
 @lru_cache(maxsize=1)

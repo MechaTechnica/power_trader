@@ -12,14 +12,14 @@ from power_framework.settings import Settings
 class FirstApplicationPlugin(Plugin):
     """Application plugin used to verify entry-point ordering."""
 
-    def register(self, container: object, runtime: object) -> None:
+    def register(self, container: object) -> None:
         """No wiring is required for entry-point selection tests."""
 
 
 class SecondApplicationPlugin(Plugin):
     """A second application plugin used to verify entry-point ordering."""
 
-    def register(self, container: object, runtime: object) -> None:
+    def register(self, container: object) -> None:
         """No wiring is required for entry-point selection tests."""
 
 
@@ -55,7 +55,7 @@ def test_register_plugin_settings_loads_and_registers_settings():
     class ConfigPlugin(Plugin):
         settings_class = AppSettings
 
-        def register(self, container: object, runtime: object) -> None:
+        def register(self, container: object) -> None:
             """No wiring required for this test."""
 
     registered: dict[type, object] = {}
@@ -72,7 +72,7 @@ def test_register_plugin_settings_loads_and_registers_settings():
 
 def test_register_plugin_settings_is_noop_without_settings_class():
     class NoSettingsPlugin(Plugin):
-        def register(self, container: object, runtime: object) -> None:
+        def register(self, container: object) -> None:
             """No wiring required for this test."""
 
     registered: dict[type, object] = {}

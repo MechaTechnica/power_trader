@@ -64,7 +64,7 @@ class InteractiveBrokersAdapter:
         """
         del interval  # IB only supports 5-second real-time bars
         if not self._connected:
-            raise ConnectionError("Not connected to Interactive Brokers")
+            await self.start()
 
         for symbol in symbols:
             # Create IB contract
@@ -92,7 +92,7 @@ class InteractiveBrokersAdapter:
     ) -> list[MarketBar]:
         """Retrieve historical bars from Interactive Brokers."""
         if not self._connected:
-            raise ConnectionError("Not connected to Interactive Brokers")
+            await self.start()
 
         # Create IB contract
         contract = Stock(symbol.symbol, "SMART", "USD")

@@ -7,7 +7,6 @@ from power_framework.exceptions import (DependencyError, LifecycleError,
                                         PluginError)
 from power_framework.plugins import (Plugin, _get_entry_points,
                                      _get_group_entry_points)
-from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.settings import FrameworkSettings, load_settings
 
 if TYPE_CHECKING:
@@ -35,10 +34,9 @@ class ApplicationBase:
     dependencies automatically, so an application never needs to know that a DI
     container exists.
 
-    The application is itself a :class:`Lifecycle` (the final stage to start and
-    the first to stop); its own ``start``/``stop`` handle only application-level
-    concerns. ``run`` is the application's main loop and is awaited on the same
-    event loop as the rest of the runtime.
+    The application owns its own ``start``/``stop``/``run`` lifecycle: ``start``
+    and ``stop`` handle application-level concerns, and ``run`` is the main loop,
+    awaited on the same event loop as the rest of the runtime.
     """
 
     async def start(self) -> None:
@@ -51,43 +49,15 @@ class ApplicationBase:
         return None
 
 
-class Runtime(LifecycleRegistry):
-    """Owns the ordered lifecycle of an application and its components.
+class Runtime:
+    """Owns the application run loop on a single event loop."""
 
-    As a :class:`LifecycleRegistry`, it collects component types in the order
-    plugins register them (infrastructure, domain services, extensions). ``start``
-    resolves each type from the container and drives it in that *registration*
-    order, then starts the application; ``stop`` reverses this. The application
-    is always started last and stopped first.
-
-    ``run`` drives the whole lifecycle on a **single** event loop: it awaits
-    ``start``, then the application's ``run``, then ``stop``. This avoids the
-    bug of binding event-loop-owned resources (clients, connections) to one loop
-    and tearing them down on another.
-    """
-
-    def __init__(
-        self,
-        container: Container,
-        *,
-        shutdown_timeout_seconds: float | None = None,
-    ) -> None:
-        self._container = container
-        self._component_types: list[type[Any]] = []
+    def __init__(self, *, shutdown_timeout_seconds: float | None = None) -> None:
         self._application: ApplicationBase | None = None
         self._shutdown_timeout_seconds = shutdown_timeout_seconds
 
-    def register(self, component_type: type[Any]) -> None:
-        """Register a lifecycle component type to be resolved and driven."""
-        self._component_types.append(component_type)
-
-    @property
-    def component_types(self) -> list[type[Any]]:
-        """The lifecycle component types in start order (a copy)."""
-        return list(self._component_types)
-
     def attach(self, application: ApplicationBase) -> None:
-        """Attach the resolved application as the final lifecycle component."""
+        """Attach the resolved application."""
         self._application = application
 
     @property
@@ -98,51 +68,18 @@ class Runtime(LifecycleRegistry):
         return application
 
     async def start(self) -> None:
-        """Start every component in registration order, then the application.
-
-        Startup is fail-fast: the first component that fails aborts startup.
-        """
-        for component_type in self._component_types:
-            component = self._container.resolve(component_type)
-            try:
-                await component.start()
-            except Exception as exc:
-                raise LifecycleError(
-                    f"Failed to start component "
-                    f"'{getattr(component_type, '__name__', str(component_type))}': {exc}"
-                ) from exc
+        """Start the application."""
         try:
             await self.application.start()
         except Exception as exc:
             raise LifecycleError(f"Failed to start application: {exc}") from exc
 
     async def stop(self) -> None:
-        """Stop the application first, then components in reverse order.
-
-        Shutdown is *resilient*: every component is given a chance to stop even
-        if an earlier one fails. Failures are collected and reported together
-        (as a single :class:`LifecycleError`) rather than aborting the remaining
-        cleanup. Each component's stop is bounded by ``shutdown_timeout_seconds``
-        when configured.
-        """
-        errors: list[Exception] = []
-
+        """Stop the application, optionally bounded by the shutdown timeout."""
         try:
             await self._stop_component(self.application, "application")
         except Exception as exc:
-            errors.append(exc)
-
-        for component_type in reversed(self._component_types):
-            component = self._container.resolve(component_type)
-            name = getattr(component_type, "__name__", str(component_type))
-            try:
-                await self._stop_component(component, name)
-            except Exception as exc:
-                errors.append(exc)
-
-        if errors:
-            detail = "; ".join(str(e) for e in errors)
-            raise LifecycleError(f"Shutdown completed with {len(errors)} failure(s): {detail}")
+            raise LifecycleError(f"Failed to stop application: {exc}") from exc
 
     async def _stop_component(self, component: Any, name: str) -> None:
         """Stop ``component``, optionally bounded by the shutdown timeout."""
@@ -291,7 +228,6 @@ class ApplicationBootstrapper:
         container = self._load_core_container(framework_overrides)
         settings = container.resolve(FrameworkSettings)
         runtime = Runtime(
-            container,
             shutdown_timeout_seconds=settings.shutdown_timeout_seconds,
         )
 
@@ -303,7 +239,7 @@ class ApplicationBootstrapper:
 
         for plugin in self._initialize_plugins(allowlist):
             self._register_plugin_settings(container, plugin)
-            plugin.register(container, runtime)
+            plugin.register(container)
 
         # application itself is singleton
         container.register(application_class, application_class)
@@ -327,13 +263,13 @@ class ApplicationBootstrapper:
             DependencyValidationError: If the application or any lifecycle
                 component has an unsatisfiable dependency, with a tree report.
         """
-        container, runtime = self.assemble(
+        container, _ = self.assemble(
             application_class,
             overrides=overrides,
             framework_overrides=framework_overrides,
             enabled_plugins=enabled_plugins,
         )
-        roots = [application_class, *runtime.component_types]
+        roots = [application_class]
         container.validate(*roots)
 
     def bootstrap(
@@ -365,7 +301,7 @@ class ApplicationBootstrapper:
             enabled_plugins=enabled_plugins,
         )
         if validate:
-            roots = [application_class, *runtime.component_types]
+            roots = [application_class]
             container.validate(*roots)
         runtime.attach(container.resolve(application_class))
         return runtime

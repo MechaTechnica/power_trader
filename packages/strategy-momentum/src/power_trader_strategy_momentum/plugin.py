@@ -7,7 +7,6 @@ is handed by the runtime.
 
 from power_framework.plugins import Plugin, PluginMetadata
 from power_framework.protocols.container import Container
-from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_market.protocols.strategy import Strategy
 from power_trader_strategy_momentum.strategy import MomentumStrategy
 
@@ -21,6 +20,5 @@ class MomentumPlugin(Plugin):
         description="Momentum trading strategy"
     )
 
-    def register(self, container: Container, runtime: LifecycleRegistry) -> None:
-        del runtime
+    def register(self, container: Container) -> None:
         container.register(Strategy[MomentumStrategy], MomentumStrategy)

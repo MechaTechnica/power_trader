@@ -5,7 +5,6 @@ from power_core.container import Container
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
 from power_day_trader.config.settings import PowerTraderSettings
 from power_day_trader.plugin import PowerDayTraderPlugin
-from power_framework.application import Runtime
 from power_framework.settings import load_settings
 from power_market.protocols.data import MarketDataProvider
 from power_market.protocols.strategy import SignalAggregator
@@ -17,7 +16,7 @@ def _build_container() -> Container:
     container = create_container()
     # The framework loads + registers app settings before the plugin wires anything.
     container.register_instance(PowerTraderSettings, load_settings(PowerTraderSettings))
-    PowerDayTraderPlugin().register(container, Runtime(container))
+    PowerDayTraderPlugin().register(container)
     return container
 
 

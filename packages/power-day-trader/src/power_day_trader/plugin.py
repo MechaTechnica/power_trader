@@ -13,7 +13,6 @@ from power_framework.events import EventBus
 from power_framework.health import HealthCheckRegistry
 from power_framework.plugins import Plugin
 from power_framework.protocols.container import Container
-from power_framework.protocols.lifecycle import LifecycleRegistry
 from power_framework.protocols.output import OutputPresenter
 from power_market.events import SignalGenerated
 from power_market.protocols.data import MarketDataProvider
@@ -28,7 +27,7 @@ class PowerDayTraderPlugin(Plugin):
     # the container before ``register`` is called.
     settings_class = PowerTraderSettings
 
-    def register(self, container: Container, runtime: LifecycleRegistry) -> None:
+    def register(self, container: Container) -> None:
         """Register the application's adapters, use cases, and health checks."""
         app_settings: PowerTraderSettings = container.resolve(PowerTraderSettings)
 
@@ -39,12 +38,17 @@ class PowerDayTraderPlugin(Plugin):
             port=app_settings.ib.port,
             client_id=app_settings.ib.client_id,
         )
-        container.register_instance(InteractiveBrokersAdapter, ib_adapter)
-        container.register_instance(MarketDataProvider, ib_adapter)
 
+        # --- Framework ---
         container.register(OutputPresenter, TerminalOutputAdapter)
+
+        # --- Market ---
+        container.register_instance(MarketDataProvider, ib_adapter)
         container.register(SignalPresenter, TerminalOutputAdapter)
         container.register(SignalAggregator, WeightedAverageAggregator)
+
+        # --- This project ---
+        container.register_instance(InteractiveBrokersAdapter, ib_adapter)
         container.register(StrategyRegistry, StrategyRegistry)
         container.register(MonitorStocksUseCase, MonitorStocksUseCase)
         container.register(CLIAdapter, CLIAdapter)
@@ -54,10 +58,6 @@ class PowerDayTraderPlugin(Plugin):
         # the monitor use case to order execution.
         event_bus = container.resolve(EventBus)
         event_bus.subscribe(SignalGenerated, SignalToOrderHandler(event_bus))
-
-        # Lifecycle ordering: infrastructure first, then domain services.
-        runtime.register(MarketDataProvider)
-        runtime.register(StrategyRegistry)
 
         # Readiness checks, evaluated by the framework's health capability.
         health = container.resolve(HealthCheckRegistry)

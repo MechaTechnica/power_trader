@@ -4,13 +4,12 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from power_framework.protocols.lifecycle import Lifecycle
 from power_market.types.market import MarketContext
 from power_market.types.signals import Signal, SignalIntent, SignalSource
 from power_trader_strategy_gex.gex_calculator import GEXCalculator, GEXLevel, OptionData
 
 
-class GEXStrategy(Lifecycle):
+class GEXStrategy:
     """
     GEX (Gamma Exposure) trading strategy.
 
@@ -24,8 +23,7 @@ class GEXStrategy(Lifecycle):
     - SELL when price approaches strong negative GEX level (resistance)
     - HOLD otherwise or in low GEX environment
 
-    Implements the Strategy protocol as a plugin and the framework Lifecycle
-    protocol (a separate, infrastructure-owned concern) for setup/teardown.
+    Implements the Strategy protocol, including its start/stop lifecycle hooks.
     """
 
     def __init__(
