@@ -7,8 +7,9 @@ runtime package (power-core) constructs and registers in the container during
 """
 
 import asyncio
+from collections.abc import Awaitable
 
-from power_framework.application import ApplicationBase
+from power_framework.application import ApplicationBase, AsyncApplicationBase
 from power_framework.exceptions import FrameworkError
 
 
@@ -34,10 +35,16 @@ class Runtime:
             raise FrameworkError("No application has been attached to the runtime.")
         return application
 
+    @staticmethod
+    async def _invoke(result: Awaitable[None] | None) -> None:
+        """Await a lifecycle result when it is a coroutine, ignoring sync returns."""
+        if isinstance(result, Awaitable):
+            await result
+
     async def start(self) -> None:
-        """Start the application."""
+        """Start the application (sync or async lifecycle)."""
         try:
-            await self.application.start()
+            await self._invoke(self.application.start())
         except Exception as exc:
             raise FrameworkError(f"Failed to start application: {exc}") from exc
 
@@ -49,12 +56,15 @@ class Runtime:
             raise FrameworkError(f"Failed to stop application: {exc}") from exc
 
     async def _stop_app(self, app: ApplicationBase) -> None:
-        """Stop the application, optionally bounded by the shutdown timeout."""
+        """Stop the application (sync or async), bounded by the shutdown timeout."""
+        result = app.stop()
+        if not isinstance(result, Awaitable):
+            return
         if self._shutdown_timeout_seconds is None:
-            await app.stop()
+            await result
             return
         try:
-            await asyncio.wait_for(app.stop(), timeout=self._shutdown_timeout_seconds)
+            await asyncio.wait_for(result, timeout=self._shutdown_timeout_seconds)
         except TimeoutError as exc:
             raise FrameworkError(
                 f"Timed out stopping component after {self._shutdown_timeout_seconds}s"
@@ -64,9 +74,30 @@ class Runtime:
         """Run the application to completion, owning the event loop.
 
         This is the synchronous public entry point for application developers.
-        Use run_async to run your application aynchronously
+        Because :class:`AsyncApplicationBase` marks an application as
+        asynchronous, the runtime dispatches on the application's type: async
+        applications are driven on an event loop via :meth:`run_async`, while
+        synchronous applications are driven directly without creating a loop.
         """
-        asyncio.run(self.run_async())
+        if isinstance(self.application, AsyncApplicationBase):
+            asyncio.run(self.run_async())
+            return
+        self._run_sync()
+
+    def _run_sync(self) -> None:
+        """Drive a fully synchronous application without an event loop."""
+        app = self.application
+        try:
+            app.start()
+        except Exception as exc:
+            raise FrameworkError(f"Failed to start application: {exc}") from exc
+        try:
+            app.run()
+        finally:
+            try:
+                app.stop()
+            except Exception as exc:
+                raise FrameworkError(f"Failed to stop application: {exc}") from exc
 
     async def run_async(self) -> None:
         """Run the application on the ambient event loop.
@@ -77,7 +108,7 @@ class Runtime:
         """
         await self.start()
         try:
-            await self.application.run()
+            await self._invoke(self.application.run())
         finally:
             await self.stop()
 

@@ -14,9 +14,12 @@ class SignalPresenter(Protocol):
     warning, and error reporting live in
     ``power_framework.output.OutputPresenter``; concrete adapters may
     implement both protocols.
+
+    Presentation is a synchronous concern (e.g. printing to a terminal), so
+    ``present_signal`` does not use ``async``.
     """
 
-    async def present_signal(
+    def present_signal(
         self,
         symbol: TickerSymbol,
         signal: Signal,
@@ -30,4 +33,3 @@ class SignalPresenter(Protocol):
             signal: Trading signal from a strategy
             metadata: Additional context about signal generation
         """
-        ...

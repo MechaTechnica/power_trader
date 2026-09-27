@@ -2,6 +2,7 @@
 
 from power_day_trader.core.strategy_registry import StrategyRegistry
 from power_framework.events import EventBus
+from power_framework.exceptions import ApplicationError
 from power_framework.output import OutputPresenter
 from power_market.events import MarketDataReceived, SignalGenerated
 from power_market.protocols.data import MarketDataProvider
@@ -51,7 +52,7 @@ class MonitorStocksUseCase:
 
         Business logic for monitoring stocks and generating signals.
         """
-        await self._output.present_status(
+        self._output.present_status(
             f"Starting monitoring of {len(symbols)} symbols at {interval} intervals"
         )
 
@@ -75,8 +76,8 @@ class MonitorStocksUseCase:
                     signal = await strategy.analyze(context)
                     signals.append(signal)
                     await self._event_bus.publish(SignalGenerated(symbol=bar.symbol, signal=signal))
-                except Exception as e:
-                    await self._output.present_error(e)
+                except ApplicationError as e:
+                    self._output.present_error(e)
 
             # Aggregate signals using business rules
             if signals:
@@ -90,4 +91,4 @@ class MonitorStocksUseCase:
                 )
 
                 # Present result
-                await self._signal_presenter.present_signal(bar.symbol, aggregated, metadata)
+                self._signal_presenter.present_signal(bar.symbol, aggregated, metadata)

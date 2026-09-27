@@ -20,7 +20,7 @@ class TerminalOutputAdapter:
         """Initialize console."""
         self.console = Console()
 
-    async def present_signal(
+    def present_signal(
         self,
         symbol: TickerSymbol,
         signal: Signal,
@@ -59,7 +59,7 @@ class TerminalOutputAdapter:
         self.console.print(table)
         self.console.print()  # Empty line
 
-    async def present_error(self, error: Exception) -> None:
+    def present_error(self, error: Exception) -> None:
         """Present an error message."""
         self.console.print(
             Panel(
@@ -68,10 +68,10 @@ class TerminalOutputAdapter:
             )
         )
 
-    async def present_status(self, message: str) -> None:
+    def present_status(self, message: str) -> None:
         """Present a status message."""
         self.console.print(f"[bold blue]ℹ️  {message}[/bold blue]")
 
-    async def present_warning(self, message: str) -> None:
+    def present_warning(self, message: str) -> None:
         """Present a warning message."""
         self.console.print(f"[bold yellow]⚠️  {message}[/bold yellow]")

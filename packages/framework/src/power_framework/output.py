@@ -9,23 +9,27 @@ class OutputPresenter(Protocol):
     This intentionally does not know about trading concepts. Signal
     presentation is the domain-specific ``SignalPresenter`` protocol in
     ``power_market.protocols.output``; concrete adapters may implement both.
+
+    These are synchronous operations (e.g. printing to a terminal), so they
+    intentionally do not use ``async``; an application may present output
+    without being coupled to an event loop.
     """
 
-    async def present_error(self, error: Exception) -> None:
+    def present_error(self, error: Exception) -> None:
         """Present an error to the user.
 
         Args:
             error: Exception that occurred
         """
 
-    async def present_status(self, message: str) -> None:
+    def present_status(self, message: str) -> None:
         """Present a status message to the user.
 
         Args:
             message: Status message (e.g., "Connected to broker")
         """
 
-    async def present_warning(self, message: str) -> None:
+    def present_warning(self, message: str) -> None:
         """Present a warning to the user.
 
         Args:

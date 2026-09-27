@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Any, Protocol, Self
 
 from power_framework.container import Container
@@ -20,16 +20,57 @@ def _plugin_name(plugin_class: type[Plugin]) -> str:
 
 
 class ApplicationBase:
-    """Base class for an application's lifecycle and run entry point."""
+    """Base class for an application's lifecycle and run entry point.
+
+    Lifecycle methods may be implemented either synchronously or as
+    coroutines. The runtime detects which style each method uses and drives
+    the application accordingly, so an application that does not need asyncio
+    can remain fully synchronous while async applications are unaffected.
+    """
+
+    def start(self) -> Awaitable[None] | None:
+        """Start the application. May be implemented synchronously or async."""
+        return None
+
+    def stop(self) -> Awaitable[None] | None:
+        """Stop the application. May be implemented synchronously or async."""
+        return None
+
+    def run(self) -> Awaitable[None] | None:
+        """Run the application to completion. May be synchronous or async."""
+        return None
+
+
+# The async hooks below intentionally override the synchronous
+# ``ApplicationBase`` hooks. This is the single place the framework bridges the
+# two styles so that async applications can use ``async def`` without needing
+# any suppression of their own.
+# pylint: disable=invalid-overridden-method
+class AsyncApplicationBase(ApplicationBase):
+    """Base class for applications whose lifecycle is asynchronous.
+
+    Overrides the lifecycle hooks as coroutines so subclasses implement
+    ``start``, ``run``, and ``stop`` with ``async def`` methods. Overriding an
+    async hook with an async coroutine satisfies static analysers without any
+    per-application suppressions. The runtime detects the coroutine style and
+    drives the application on the event loop it owns.
+
+    Applications that are entirely synchronous should subclass
+    :class:`ApplicationBase` directly instead; the two styles may not be mixed
+    within a single application's hooks intentionally.
+    """
 
     async def start(self) -> None:
-        pass
+        """Start the application."""
+        return None
 
     async def stop(self) -> None:
-        pass
+        """Stop the application."""
+        return None
 
     async def run(self) -> None:
-        pass
+        """Run the application to completion."""
+        return None
 
 
 class Runtime(Protocol):
@@ -44,27 +85,21 @@ class Runtime(Protocol):
     @property
     def application(self) -> ApplicationBase:
         """The attached application."""
-        ...
 
     def attach(self, application: ApplicationBase) -> None:
         """Attach the resolved application."""
-        ...
 
     async def start(self) -> None:
         """Start the application."""
-        ...
 
     async def stop(self) -> None:
         """Stop the application, optionally bounded by the shutdown timeout."""
-        ...
 
     def run(self) -> None:
         """Run the application to completion, owning the event loop."""
-        ...
 
     async def run_async(self) -> None:
         """Run the application on the ambient event loop."""
-        ...
 
 
 class ApplicationBootstrapper:
@@ -72,7 +107,7 @@ class ApplicationBootstrapper:
 
     This class bridges the framework's plugin discovery with the concrete
     runtime (``power-core``) discovered via entry points. Plugins are registered
-    into the container first, then the application is resolved and attached 
+    into the container first, then the application is resolved and attached
     to the runtime.
 
     Plugin discovery is separated from plugin *authorization*: discovery finds
@@ -319,5 +354,6 @@ class ApplicationBuilder:
 __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
+    "AsyncApplicationBase",
     "Runtime",
 ]

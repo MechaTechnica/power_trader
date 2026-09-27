@@ -1,12 +1,12 @@
 """Power Day Trader application lifecycle."""
 
 from power_day_trader.adapters.primary.cli_adapter import CLIAdapter
-from power_framework.application import ApplicationBase
+from power_framework.application import AsyncApplicationBase
 from power_framework.observability import Logger, TerminalLogger
 from power_framework.output import OutputPresenter
 
 
-class PowerDayTraderApplication(ApplicationBase):
+class PowerDayTraderApplication(AsyncApplicationBase):
     """Power Day Trader application lifecycle and run entry point.
 
     Dependencies are injected through the constructor by the framework. The
@@ -29,11 +29,12 @@ class PowerDayTraderApplication(ApplicationBase):
 
     async def start(self) -> None:
         self._logger.info("application_started")
-        await self._output.present_status("Power Day Trader started successfully")
+        self._output.present_status("Power Day Trader started successfully")
 
     async def stop(self) -> None:
         self._logger.info("application_stopped")
-        await self._output.present_status("Power Day Trader shut down")
+        self._output.present_status("Power Day Trader shut down")
 
     async def run(self) -> None:
+        """Run the application's primary flow on the runtime-owned event loop."""
         await self._cli.run()

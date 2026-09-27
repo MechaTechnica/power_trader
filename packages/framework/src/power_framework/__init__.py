@@ -10,7 +10,7 @@ implementations live in ``power-core``.
 __version__ = "0.1.0"
 
 from power_framework.application import (ApplicationBase, ApplicationBuilder,
-                                         Runtime)
+                                         AsyncApplicationBase, Runtime)
 from power_framework.aspects import (AuditInterceptor, Interceptor,
                                      ObserveInterceptor, OperationKind,
                                      RetryInterceptor, audited, intercept,
@@ -42,6 +42,7 @@ __all__ = [
     "ApplicationBase",
     "ApplicationBuilder",
     "ApplicationError",
+    "AsyncApplicationBase",
     "ApplicationTestHarness",
     "AuditEvent",
     "AuditInterceptor",
