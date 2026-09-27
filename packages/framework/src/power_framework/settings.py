@@ -16,12 +16,8 @@ from pathlib import Path
 from typing import ClassVar, TypeVar
 
 from pydantic import Field
-from pydantic_settings import (
-    BaseSettings,
-    JsonConfigSettingsSource,
-    PydanticBaseSettingsSource,
-    SettingsConfigDict,
-)
+from pydantic_settings import (BaseSettings, JsonConfigSettingsSource,
+                               PydanticBaseSettingsSource, SettingsConfigDict)
 
 
 class Environment(StrEnum):
@@ -73,7 +69,16 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        """Insert the optional JSON source below env vars but above defaults."""
+        """Configure settings source precedence.
+        
+        Precedence, highest to lowest:
+            1. Explicit constructor values
+            2. Environment variables
+            3. .env file
+            4. JSON configuration
+            5. Secret files
+            6. Field defaults
+        """
         sources: list[PydanticBaseSettingsSource] = [
             init_settings,
             env_settings,

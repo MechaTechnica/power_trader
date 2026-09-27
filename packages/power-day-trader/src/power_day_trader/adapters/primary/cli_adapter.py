@@ -3,7 +3,6 @@
 import asyncio
 
 import click
-
 from power_day_trader.core.use_cases.monitor_stocks import MonitorStocksUseCase
 from power_market.types.market import TickerSymbol, TimeInterval
 
@@ -34,7 +33,6 @@ class CLIAdapter:
         @click.group()
         def cli() -> None:
             """Power Day Trader - Day trading with ML strategies."""
-            pass
 
         @cli.command()
         @click.argument("symbols", nargs=-1, required=True)

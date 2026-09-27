@@ -210,19 +210,7 @@ class GEXCalculator:
     def find_zero_gamma_level(
         self, gex_by_strike: dict[Decimal, tuple[float, float, float]]
     ) -> Decimal | None:
-        """
-        Find the strike where GEX flips sign (the "gamma flip point").
-
-        Scanning strikes in ascending order, return the first strike whose total
-        GEX changes from positive to negative (or negative to positive). This is
-        a key level where dealer positioning flips.
-
-        Args:
-            gex_by_strike: GEX aggregated by strike
-
-        Returns:
-            Strike price of the gamma flip level, or None if not found
-        """
+        """Find the first strike where total GEX changes sign, or ``None``."""
         strikes_sorted = sorted(gex_by_strike.keys())
 
         prev_gex: float | None = None

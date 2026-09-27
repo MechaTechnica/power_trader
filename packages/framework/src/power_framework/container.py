@@ -21,7 +21,7 @@ class Lifetime(StrEnum):
     TRANSIENT = "transient"
     """A fresh instance on every resolve."""
 
-
+#todo: Don't pass the Container directly to applications register method becuase it allows applications to resolve, while they should only be concerted about registering
 class Container(ABC):
     """
     Abstract base for a dependency injection container.

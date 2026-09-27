@@ -17,7 +17,6 @@ class OutputPresenter(Protocol):
         Args:
             error: Exception that occurred
         """
-        ...
 
     async def present_status(self, message: str) -> None:
         """Present a status message to the user.
@@ -25,7 +24,6 @@ class OutputPresenter(Protocol):
         Args:
             message: Status message (e.g., "Connected to broker")
         """
-        ...
 
     async def present_warning(self, message: str) -> None:
         """Present a warning to the user.
@@ -33,7 +31,6 @@ class OutputPresenter(Protocol):
         Args:
             message: Warning message
         """
-        ...
 
 
 __all__ = [

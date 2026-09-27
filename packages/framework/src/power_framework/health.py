@@ -54,7 +54,6 @@ class HealthCheck(Protocol):
 
     async def check(self) -> HealthStatus:
         """Return this component's current health."""
-        ...
 
 
 class HealthCheckRegistry(Protocol):
@@ -62,16 +61,13 @@ class HealthCheckRegistry(Protocol):
 
     def register(self, check: HealthCheck) -> None:
         """Register a readiness check, in the order it should be evaluated."""
-        ...
 
     @property
     def checks(self) -> list[HealthCheck]:
         """The registered checks, in evaluation order."""
-        ...
 
     async def run_all(self) -> list[HealthStatus]:
         """Run every registered check and return one status per check."""
-        ...
 
 
 @dataclass(frozen=True)
